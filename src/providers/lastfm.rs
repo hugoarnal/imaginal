@@ -60,8 +60,10 @@ struct Track {
     mbid: String,
     album: Album,
     name: String,
+    #[serde(rename = "@attr")]
+    attr: Option<TrackAttr>,
     url: String,
-    date: Date,
+    date: Option<Date>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,6 +71,11 @@ struct Album {
     mbid: String,
     #[serde(rename = "#text")]
     text: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct TrackAttr {
+    nowplaying: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
