@@ -1,3 +1,5 @@
+mod spotify;
+
 #[derive(Debug)]
 pub enum Platforms {
     Spotify,
@@ -10,22 +12,31 @@ pub struct Provider {
 
 impl Provider {
     pub fn new(platform: Platforms) -> Self {
+        match platform {
+            Platforms::Spotify => {
+                spotify::verify();
+            },
+            Platforms::LastFM => {
+                todo!("LastFM verification implementation");
+            }
+        }
         Self {
             platform: platform,
         }
     }
 
-    pub fn change_platform(&mut self, platform: Platforms) {
-        self.platform = platform;
-    }
-
-    pub fn display_type(&self) {
-        println!("{:?}", self.platform);
+    pub async fn connect(&mut self) {
+        match self.platform {
+            Platforms::Spotify => {
+                let access_token = spotify::get_access_token().await;
+            },
+            Platforms::LastFM => {
+                let _ = "";
+            },
+        }
     }
 }
 
 pub fn new(platform: Platforms) -> Provider {
-    let provider = Provider::new(platform);
-    provider.display_type();
-    provider
+    Provider::new(platform)
 }

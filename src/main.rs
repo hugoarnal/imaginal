@@ -1,4 +1,4 @@
-pub mod providers;
+mod providers;
 
 use dotenv::dotenv;
 
@@ -6,7 +6,8 @@ use dotenv::dotenv;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let mut test = providers::new(providers::Platforms::Spotify);
-    test.change_platform(providers::Platforms::LastFM);
-    test.display_type();
+    // test.change_platform(providers::Platforms::LastFM);
+    // test.display_type();
+    test.connect().await;
     Ok(())
 }
