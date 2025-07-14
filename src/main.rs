@@ -5,9 +5,8 @@ use dotenv::dotenv;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
-    let mut test = providers::new(providers::Platforms::Spotify);
-    // test.change_platform(providers::Platforms::LastFM);
-    // test.display_type();
-    test.connect().await;
+    let mut provider = providers::new(providers::Platforms::LastFM);
+    provider.connect().await;
+    provider.currently_playing().await;
     Ok(())
 }

@@ -1,3 +1,4 @@
+mod lastfm;
 mod spotify;
 
 pub struct CurrentlyPlaying {
@@ -27,7 +28,7 @@ impl Provider {
                 spotify::verify();
             },
             Platforms::LastFM => {
-                todo!("LastFM verification implementation");
+                lastfm::verify();
             }
         }
         Self {
@@ -39,17 +40,21 @@ impl Provider {
     pub async fn connect(&mut self) {
         match self.platform {
             Platforms::Spotify => {
-                match spotify::get_access_token().await {
-                    Ok(access_token) => {
-                        self.access_token = access_token;
-                    }
-                    Err(_) => {
-                        panic!("Couldn't initialize connection with Spotify");
-                    }
-                }
+                todo!("Spotify login implementation");
+            },
+            _ => {
+                println!("No login implementation detected for this platform");
+            },
+        }
+    }
+
+    pub async fn currently_playing(&mut self) {
+        match self.platform {
+            Platforms::Spotify => {
+                todo!("Spotify playing implementation");
             },
             Platforms::LastFM => {
-                todo!("LastFM connection implementation");
+                let _ = lastfm::currently_playing().await;
             },
         }
     }
