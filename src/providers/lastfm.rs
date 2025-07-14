@@ -54,11 +54,11 @@ struct Attr {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Track {
-    artist: Album,
+    artist: ArtistAlbum,
     streamable: String,
     image: Vec<Image>,
     mbid: String,
-    album: Album,
+    album: ArtistAlbum,
     name: String,
     #[serde(rename = "@attr")]
     attr: Option<TrackAttr>,
@@ -67,7 +67,8 @@ struct Track {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Album {
+// TODO: change name
+struct ArtistAlbum {
     mbid: String,
     #[serde(rename = "#text")]
     text: String,
@@ -92,7 +93,7 @@ struct Image {
     text: String,
 }
 
-pub async fn currently_playing() -> Result<(), reqwest::Error> {
+pub async fn currently_playing() -> Result<Option<CurrentlyPlaying>, reqwest::Error> {
     let username = env::var(USERNAME_ENV).unwrap();
     let api_key = env::var(API_KEY_ENV).unwrap();
 
@@ -115,6 +116,33 @@ pub async fn currently_playing() -> Result<(), reqwest::Error> {
         .await
         .unwrap();
 
-    dbg!(results);
-    Ok(())
+
+    let mut now_playing: Option<CurrentlyPlaying> = None;
+
+    let first_element = results.recenttracks.track.into_iter().next();
+    match first_element {
+        Some(track) => {
+            let mut playing = false;
+
+            match track.attr {
+                Some(track_attr) => {
+                    if track_attr.nowplaying == "true" {
+                        playing = true;
+                    }
+                }
+                _ => {},
+            }
+
+            now_playing = Some(CurrentlyPlaying {
+                album: track.album.text,
+                playing: playing,
+                title: track.name,
+                artist: track.artist.text
+            });
+        },
+        None => {
+            println!("No tracks detected at all, returning None");
+        }
+    }
+    Ok(now_playing)
 }

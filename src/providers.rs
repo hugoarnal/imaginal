@@ -54,7 +54,15 @@ impl Provider {
                 todo!("Spotify playing implementation");
             },
             Platforms::LastFM => {
-                let _ = lastfm::currently_playing().await;
+                // TODO: horrid error handling
+                match lastfm::currently_playing().await {
+                    Ok(currently_playing) => {
+                        println!("{}", currently_playing.unwrap().title);
+                    },
+                    Err(_) => {
+                        println!("Error occured oh no");
+                    }
+                }
             },
         }
     }
