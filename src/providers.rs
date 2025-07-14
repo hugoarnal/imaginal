@@ -1,5 +1,12 @@
 mod spotify;
 
+pub struct CurrentlyPlaying {
+    playing: bool,
+    title: String,
+    artist: String,
+    album: String,
+}
+
 #[derive(Debug)]
 pub enum Platforms {
     Spotify,
@@ -7,7 +14,10 @@ pub enum Platforms {
 }
 
 pub struct Provider {
-    platform: Platforms
+    platform: Platforms,
+    // TODO: I don't really think this is a great idea for now,
+    // think about moving it later on.
+    access_token: String
 }
 
 impl Provider {
@@ -22,16 +32,24 @@ impl Provider {
         }
         Self {
             platform: platform,
+            access_token: String::new()
         }
     }
 
     pub async fn connect(&mut self) {
         match self.platform {
             Platforms::Spotify => {
-                let access_token = spotify::get_access_token().await;
+                match spotify::get_access_token().await {
+                    Ok(access_token) => {
+                        self.access_token = access_token;
+                    }
+                    Err(_) => {
+                        panic!("Couldn't initialize connection with Spotify");
+                    }
+                }
             },
             Platforms::LastFM => {
-                let _ = "";
+                todo!("LastFM connection implementation");
             },
         }
     }

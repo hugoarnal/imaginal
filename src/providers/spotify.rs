@@ -1,6 +1,8 @@
 use std::env;
 use serde::{Deserialize};
 
+use crate::providers::CurrentlyPlaying;
+
 #[allow(dead_code)]
 #[derive(Deserialize)]
 struct AccessTokenJson {
@@ -9,7 +11,14 @@ struct AccessTokenJson {
     expires_in: i32
 }
 
+#[derive(Debug)]
+pub enum CurrentlyPlayingError {
+    ExpiredToken,
+    UnknownError
+}
+
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
+const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 
@@ -34,6 +43,7 @@ pub fn verify() {
     check_env_existance(CLIENT_SECRET_ENV, true);
 }
 
+// TODO: can delete like all of this because we need to use the OAuth flow instead of this
 pub async fn get_access_token() -> Result<String, reqwest::Error> {
     let resp = reqwest::Client::new()
         .post(ACCESS_TOKEN_API_LINK)
