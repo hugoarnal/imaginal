@@ -5,10 +5,10 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use parking_lot::Mutex;
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::header::{AUTHORIZATION, HeaderMap};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
-use crate::utils::check_env_existence;
+use crate::{providers::Song, utils::check_env_existence};
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
@@ -20,7 +20,7 @@ struct AccessTokenJson {
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
-const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player/currently-playing";
+const CURRENTLY_PLAYING_API_LINK: &str = "https://api.spotify.com/v1/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 const IP: &str = "127.0.0.1";
@@ -175,4 +175,64 @@ impl StopHandle {
         #[allow(clippy::let_underscore_future)]
         let _ = self.inner.lock().as_ref().unwrap().stop(graceful);
     }
+}
+
+#[derive(Serialize, Deserialize)]
+struct CurrentlyPlayingSchema {
+    is_playing: bool,
+    item: Item,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Item {
+    album: Album,
+    artists: Vec<Artist>,
+    name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Album {
+    name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+struct Artist {
+    name: String,
+}
+
+pub async fn currently_playing(access_token: String) -> Result<Option<Song>, reqwest::Error> {
+    let mut headers = HeaderMap::new();
+
+    headers.insert(
+        AUTHORIZATION,
+        format!("Bearer {}", access_token).parse().unwrap(),
+    );
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(CURRENTLY_PLAYING_API_LINK)
+        .headers(headers)
+        .send()
+        .await?;
+
+    let results = response.json::<CurrentlyPlayingSchema>().await?;
+
+    let artist_name: String;
+    match results.item.artists.into_iter().next() {
+        Some(artist) => {
+            artist_name = artist.name;
+        }
+        None => {
+            artist_name = String::from("None");
+        }
+    }
+
+    let currently_playing: Option<Song> = Some(Song {
+        playing: results.is_playing,
+        title: results.item.name,
+        artist: artist_name,
+        album: results.item.album.name,
+    });
+
+    Ok(currently_playing)
 }

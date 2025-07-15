@@ -21,11 +21,16 @@ pub enum Platforms {
     LastFM,
 }
 
+// this is for future platforms implementation, might remove?
+#[allow(unreachable_patterns)]
 impl Platforms {
     fn verify(&self) -> bool {
         match *self {
             Platforms::Spotify => spotify::verify(),
             Platforms::LastFM => lastfm::verify(),
+            _ => {
+                todo!("This platform hasn't been implemented")
+            }
         }
     }
 
@@ -33,16 +38,21 @@ impl Platforms {
         match *self {
             Platforms::Spotify => 2,
             Platforms::LastFM => 2,
+            _ => 2,
         }
     }
 
-    // TODO: can't this be type aliased?
-    fn currently_playing(&self) -> impl Future<Output = Result<Option<Song>, reqwest::Error>> {
+    // TODO: remove this "hard coded" access_token for an Option<PlatformParameter> or something like that?
+    async fn currently_playing(
+        &self,
+        access_token: Option<String>,
+    ) -> Result<Option<Song>, reqwest::Error> {
         match *self {
-            Platforms::Spotify => {
-                todo!("Spotify playing implementation")
+            Platforms::Spotify => spotify::currently_playing(access_token.unwrap()).await,
+            Platforms::LastFM => lastfm::currently_playing().await,
+            _ => {
+                todo!("This platform hasn't been implemented")
             }
-            Platforms::LastFM => lastfm::currently_playing(),
         }
     }
 }
@@ -87,7 +97,11 @@ impl Provider {
     }
 
     pub async fn currently_playing(&mut self) {
-        match self.platform.currently_playing().await {
+        match self
+            .platform
+            .currently_playing(self.spotify_access_token.clone())
+            .await
+        {
             Ok(currently_playing) => {
                 match currently_playing {
                     Some(song) => {
@@ -99,8 +113,8 @@ impl Provider {
                     }
                 };
             }
-            Err(_) => {
-                println!("Error occured oh no");
+            Err(err) => {
+                panic!("{}", err);
             }
         }
     }
