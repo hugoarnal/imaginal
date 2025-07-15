@@ -47,9 +47,6 @@ impl Platforms {
 
 pub struct Provider {
     platform: Platforms,
-    // TODO: I don't really think this is a great idea for now,
-    // think about moving it later on.
-    access_token: String
 }
 
 impl Provider {
@@ -58,14 +55,13 @@ impl Provider {
         println!("Provider {:?}", platform);
         Self {
             platform: platform,
-            access_token: String::new()
         }
     }
 
     pub async fn connect(&mut self) {
         match self.platform {
             Platforms::Spotify => {
-                todo!("Spotify login implementation");
+                spotify::connect();
             },
             _ => {
                 println!("No login implementation detected for {:?}", self.platform);

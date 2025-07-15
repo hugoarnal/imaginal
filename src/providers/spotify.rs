@@ -11,13 +11,7 @@ struct AccessTokenJson {
     expires_in: i32
 }
 
-#[derive(Debug)]
-pub enum CurrentlyPlayingError {
-    ExpiredToken,
-    UnknownError
-}
-
-const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
+const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
@@ -27,24 +21,28 @@ pub fn verify() {
     check_env_existence(CLIENT_SECRET_ENV, true);
 }
 
-// TODO: can delete like all of this because we need to use the OAuth flow instead of this
-pub async fn get_access_token() -> Result<String, reqwest::Error> {
-    let resp = reqwest::Client::new()
-        .post(ACCESS_TOKEN_API_LINK)
-        .form(&[
-            ("grant_type", "client_credentials"),
-            ("client_id", env::var(CLIENT_ID_ENV).unwrap().as_str()),
-            ("client_secret", env::var(CLIENT_SECRET_ENV).unwrap().as_str())
-        ])
-        .send()
-        .await
-        .expect("send");
-    if resp.status() != 200 {
-        // TODO: idk, should return error or panic (?)
-    }
-    // TODO: add proper logging
-    println!("Response status {}", resp.status());
+use rand::distr::{Alphanumeric, SampleString};
 
-    let json = resp.json::<AccessTokenJson>().await?;
-    Ok(json.access_token)
+pub fn connect() {
+    // TODO: host a /login endpoint like in the official post so that a DE is not needed
+    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
+
+    let redirect_uri = String::from("http://127.0.0.1:9761/callback");
+    let mut url = String::from(AUTHORIZE_API_LINK);
+    let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
+
+    url.push_str("?response_type=code");
+    url.push_str(format!("&client_id={}", env::var(CLIENT_ID_ENV).unwrap()).as_str());
+    url.push_str("&scope=user-read-currently-playing");
+    url.push_str(format!("&redirect_uri={}", redirect_uri).as_str());
+    url.push_str(format!("&state={}", state).as_str());
+
+    match open::that(url) {
+        Ok(_) => {},
+        Err(_) => {
+            panic!("Couldn't open Spotify connection link");
+        }
+    };
+
+
 }
