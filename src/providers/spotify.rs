@@ -1,8 +1,10 @@
 use actix_web::{
-    App, HttpResponse, HttpServer, Responder, dev::ServerHandle, get, middleware, web,
+    dev::ServerHandle, get, middleware, web, App, HttpResponse, HttpServer, Responder
 };
+use base64::{prelude::BASE64_STANDARD, Engine};
 use parking_lot::Mutex;
 use rand::distr::{Alphanumeric, SampleString};
+use reqwest::header::{HeaderMap, AUTHORIZATION};
 use serde::Deserialize;
 use std::{env, sync::Arc};
 
@@ -17,6 +19,7 @@ struct AccessTokenJson {
 }
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
+const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
 const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
@@ -26,6 +29,36 @@ const PORT: u16 = 9761;
 pub fn verify() {
     check_env_existence(CLIENT_ID_ENV, true);
     check_env_existence(CLIENT_SECRET_ENV, true);
+}
+
+async fn get_access_token(code: String, redirect_uri: String) -> Result<String, reqwest::Error> {
+    let mut headers = HeaderMap::new();
+
+    let client_id = env::var(CLIENT_ID_ENV).unwrap();
+    let client_secret = env::var(CLIENT_SECRET_ENV).unwrap();
+    let encrypted_client_settings = format!("{}:{}", client_id, client_secret);
+
+    headers.insert(AUTHORIZATION, format!("Basic {}", BASE64_STANDARD.encode(encrypted_client_settings)).parse().unwrap());
+
+    let resp = reqwest::Client::new()
+        .post(ACCESS_TOKEN_API_LINK)
+        .form(&[
+            ("grant_type", "authorization_code"),
+            ("code", code.as_ref()),
+            ("redirect_uri", redirect_uri.as_ref())
+        ])
+        .headers(headers)
+        .send()
+        .await
+        .expect("send");
+    if resp.status() != 200 {
+        // TODO: idk, should return error or panic (?)
+    }
+    // TODO: add proper logging
+    println!("Response status {}", resp.status());
+
+    let json = resp.json::<AccessTokenJson>().await?;
+    Ok(json.access_token)
 }
 
 #[derive(Deserialize)]
@@ -102,9 +135,15 @@ pub async fn connect() -> Result<(), std::io::Error> {
     stop_handle.register(server.handle());
 
     server.await?;
-    println!("Code: {}", query_state.code.lock());
-    println!("State: {}", query_state.state.lock());
+
+    // TODO: correct error handling
+    if state != *query_state.state.lock() {
+        panic!("Incorrect given state");
+    }
+    let access_token = get_access_token(query_state.code.lock().clone(), redirect_uri).await.unwrap();
+    println!("{}", access_token);
     Ok(())
+
 }
 
 #[derive(Default)]
