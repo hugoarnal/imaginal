@@ -34,11 +34,26 @@ struct QueryInfo {
     state: String,
 }
 
+#[derive(Default, Clone)]
+struct QueryState {
+    code: Arc<Mutex<String>>,
+    state: Arc<Mutex<String>>,
+}
+
+impl QueryState {
+    fn update(&self, info: web::Query<QueryInfo>) {
+        *self.code.lock() = info.code.clone();
+        *self.state.lock() = info.state.clone();
+    }
+}
+
 #[get("/callback")]
 async fn callback(
     info: web::Query<QueryInfo>,
+    query_state: web::Data<QueryState>,
     stop_handle: web::Data<StopHandle>,
 ) -> impl Responder {
+    query_state.update(info);
     stop_handle.stop(false);
     HttpResponse::NoContent().finish()
 }
@@ -66,12 +81,15 @@ pub async fn connect() -> Result<(), std::io::Error> {
 
     // https://github.com/actix/examples/blob/49ea95e9e69e64f5c14f4c43692e4e7916218d6d/shutdown-server/src/main.rs
     let stop_handle = web::Data::new(StopHandle::default());
+    let query_state = web::Data::new(QueryState::default());
 
     let server = HttpServer::new({
         let stop_handle = stop_handle.clone();
+        let query_state = query_state.clone();
 
         move || {
             App::new()
+                .app_data(query_state.clone())
                 .app_data(stop_handle.clone())
                 .service(callback)
                 .wrap(middleware::Logger::default())
@@ -84,8 +102,8 @@ pub async fn connect() -> Result<(), std::io::Error> {
     stop_handle.register(server.handle());
 
     server.await?;
-    println!("Code: {}", "TODO");
-    println!("State: {}", "TODO");
+    println!("Code: {}", query_state.code.lock());
+    println!("State: {}", query_state.state.lock());
     Ok(())
 }
 
