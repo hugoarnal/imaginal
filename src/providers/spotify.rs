@@ -26,9 +26,9 @@ const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 const IP: &str = "127.0.0.1";
 const PORT: u16 = 9761;
 
-pub fn verify() -> bool {
-    check_env_existence(CLIENT_ID_ENV, true);
-    check_env_existence(CLIENT_SECRET_ENV, true)
+pub fn verify(panic: bool) -> bool {
+    check_env_existence(CLIENT_ID_ENV, panic);
+    check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
 async fn get_access_token(code: String, redirect_uri: String) -> Result<String, reqwest::Error> {

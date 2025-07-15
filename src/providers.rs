@@ -26,8 +26,8 @@ pub enum Platforms {
 impl Platforms {
     fn verify(&self) -> bool {
         match *self {
-            Platforms::Spotify => spotify::verify(),
-            Platforms::LastFM => lastfm::verify(),
+            Platforms::Spotify => spotify::verify(true),
+            Platforms::LastFM => lastfm::verify(true),
             _ => {
                 todo!("This platform hasn't been implemented")
             }
@@ -149,10 +149,10 @@ pub fn detect_platform() -> Option<Platforms> {
     if check_env_existence(PRIORITY_PLATFORM, false) {
         return get_platform_from_env();
     }
-    if lastfm::verify() {
+    if lastfm::verify(false) {
         return Some(Platforms::LastFM);
     }
-    if spotify::verify() {
+    if spotify::verify(false) {
         return Some(Platforms::Spotify);
     }
     None
