@@ -38,9 +38,7 @@ impl Platforms {
             Platforms::Spotify => {
                 todo!("Spotify playing implementation")
             }
-            Platforms::LastFM => {
-                lastfm::currently_playing()
-            }
+            Platforms::LastFM => lastfm::currently_playing(),
         }
     }
 }
@@ -53,19 +51,17 @@ impl Provider {
     pub fn new(platform: Platforms) -> Self {
         platform.verify();
         println!("Provider {:?}", platform);
-        Self {
-            platform: platform,
-        }
+        Self { platform: platform }
     }
 
     pub async fn connect(&mut self) {
         match self.platform {
             Platforms::Spotify => {
                 spotify::connect();
-            },
+            }
             _ => {
                 println!("No login implementation detected for {:?}", self.platform);
-            },
+            }
         }
     }
 
@@ -76,12 +72,12 @@ impl Provider {
                     Some(song) => {
                         println!("{} - {}", song.title, song.artist);
                         println!("Album: {}", song.album);
-                    },
+                    }
                     None => {
                         println!("No song detected");
                     }
                 };
-            },
+            }
             Err(_) => {
                 println!("Error occured oh no");
             }

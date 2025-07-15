@@ -1,8 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::env;
-use serde::{Serialize, Deserialize};
 
-use crate::utils::check_env_existence;
 use crate::providers::Song;
+use crate::utils::check_env_existence;
 
 const API_URL: &str = "http://ws.audioscrobbler.com/2.0/";
 const API_KEY_ENV: &str = "LASTFM_API_KEY";
@@ -92,14 +92,9 @@ pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {
     ];
 
     let client = reqwest::Client::new();
-    let response = client.get(API_URL)
-        .query(&query)
-        .send()
-        .await?;
+    let response = client.get(API_URL).query(&query).send().await?;
 
-    let results = response
-        .json::<CurrentlyPlayingSchema>()
-        .await?;
+    let results = response.json::<CurrentlyPlayingSchema>().await?;
 
     let mut currently_playing: Option<Song> = None;
 
@@ -114,16 +109,16 @@ pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {
                         playing = true;
                     }
                 }
-                _ => {},
+                _ => {}
             }
 
             currently_playing = Some(Song {
                 album: track.album.text,
                 playing: playing,
                 title: track.name,
-                artist: track.artist.text
+                artist: track.artist.text,
             });
-        },
+        }
         None => {
             println!("No tracks detected at all, returning None");
         }

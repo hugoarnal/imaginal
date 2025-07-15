@@ -1,5 +1,5 @@
+use serde::Deserialize;
 use std::env;
-use serde::{Deserialize};
 
 use crate::utils::check_env_existence;
 
@@ -8,7 +8,7 @@ use crate::utils::check_env_existence;
 struct AccessTokenJson {
     access_token: String,
     token_type: String,
-    expires_in: i32
+    expires_in: i32,
 }
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
@@ -38,11 +38,9 @@ pub fn connect() {
     url.push_str(format!("&state={}", state).as_str());
 
     match open::that(url) {
-        Ok(_) => {},
+        Ok(_) => {}
         Err(_) => {
             panic!("Couldn't open Spotify connection link");
         }
     };
-
-
 }
