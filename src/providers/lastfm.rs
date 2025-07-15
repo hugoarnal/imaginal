@@ -2,18 +2,12 @@ use std::env;
 use serde::{Serialize, Deserialize};
 
 use crate::utils::check_env_existence;
-use crate::providers::CurrentlyPlaying;
+use crate::providers::Song;
 
 const API_URL: &str = "http://ws.audioscrobbler.com/2.0/";
 const API_KEY_ENV: &str = "LASTFM_API_KEY";
 const SHARED_SECRET_ENV: &str = "LASTFM_SHARED_SECRET";
 const USERNAME_ENV: &str = "LASTFM_USERNAME";
-
-pub fn verify() {
-    check_env_existence(API_KEY_ENV, true);
-    check_env_existence(SHARED_SECRET_ENV, true);
-    check_env_existence(USERNAME_ENV, true);
-}
 
 // Generated using Hoppscotch data schema, very useful
 #[derive(Debug, Serialize, Deserialize)]
@@ -79,11 +73,17 @@ struct Image {
     text: String,
 }
 
-pub async fn currently_playing() -> Result<Option<CurrentlyPlaying>, reqwest::Error> {
+pub fn verify() {
+    check_env_existence(API_KEY_ENV, true);
+    check_env_existence(SHARED_SECRET_ENV, true);
+    check_env_existence(USERNAME_ENV, true);
+}
+
+pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {
     let username = env::var(USERNAME_ENV).unwrap();
     let api_key = env::var(API_KEY_ENV).unwrap();
 
-    let querystring = [
+    let query = [
         ("method", "user.getrecenttracks"),
         ("user", username.as_str()),
         ("api_key", api_key.as_str()),
@@ -93,17 +93,15 @@ pub async fn currently_playing() -> Result<Option<CurrentlyPlaying>, reqwest::Er
 
     let client = reqwest::Client::new();
     let response = client.get(API_URL)
-        .query(&querystring)
+        .query(&query)
         .send()
         .await?;
 
     let results = response
         .json::<CurrentlyPlayingSchema>()
-        .await
-        .unwrap();
+        .await?;
 
-
-    let mut now_playing: Option<CurrentlyPlaying> = None;
+    let mut currently_playing: Option<Song> = None;
 
     let first_element = results.recenttracks.track.into_iter().next();
     match first_element {
@@ -119,7 +117,7 @@ pub async fn currently_playing() -> Result<Option<CurrentlyPlaying>, reqwest::Er
                 _ => {},
             }
 
-            now_playing = Some(CurrentlyPlaying {
+            currently_playing = Some(Song {
                 album: track.album.text,
                 playing: playing,
                 title: track.name,
@@ -130,5 +128,5 @@ pub async fn currently_playing() -> Result<Option<CurrentlyPlaying>, reqwest::Er
             println!("No tracks detected at all, returning None");
         }
     }
-    Ok(now_playing)
+    Ok(currently_playing)
 }

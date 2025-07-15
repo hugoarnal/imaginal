@@ -4,7 +4,7 @@ mod lastfm;
 mod spotify;
 
 #[allow(dead_code)]
-pub struct CurrentlyPlaying {
+pub struct Song {
     playing: bool,
     title: String,
     artist: String,
@@ -33,7 +33,7 @@ impl Platforms {
     }
 
     // TODO: can't this be type aliased?
-    fn currently_playing(&self) -> impl Future<Output = Result<std::option::Option<CurrentlyPlaying>, reqwest::Error>> {
+    fn currently_playing(&self) -> impl Future<Output = Result<Option<Song>, reqwest::Error>> {
         match *self {
             Platforms::Spotify => {
                 todo!("Spotify playing implementation")
@@ -55,6 +55,7 @@ pub struct Provider {
 impl Provider {
     pub fn new(platform: Platforms) -> Self {
         platform.verify();
+        println!("Provider {:?}", platform);
         Self {
             platform: platform,
             access_token: String::new()
@@ -67,7 +68,7 @@ impl Provider {
                 todo!("Spotify login implementation");
             },
             _ => {
-                println!("No login implementation detected for this platform");
+                println!("No login implementation detected for {:?}", self.platform);
             },
         }
     }
@@ -75,9 +76,15 @@ impl Provider {
     pub async fn currently_playing(&mut self) {
         match self.platform.currently_playing().await {
             Ok(currently_playing) => {
-                let song = currently_playing.unwrap();
-                println!("{} - {}", song.title, song.artist);
-                println!("Album: {}", song.album);
+                match currently_playing {
+                    Some(song) => {
+                        println!("{} - {}", song.title, song.artist);
+                        println!("Album: {}", song.album);
+                    },
+                    None => {
+                        println!("No song detected");
+                    }
+                };
             },
             Err(_) => {
                 println!("Error occured oh no");
