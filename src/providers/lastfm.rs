@@ -12,44 +12,25 @@ const USERNAME_ENV: &str = "LASTFM_USERNAME";
 // Generated using Hoppscotch data schema, very useful
 #[derive(Debug, Serialize, Deserialize)]
 struct CurrentlyPlayingSchema {
-    recenttracks: Recenttracks,
+    recenttracks: RecentTracks,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Recenttracks {
+struct RecentTracks {
     track: Vec<Track>,
-    #[serde(rename = "@attr")]
-    attr: Attr,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct Attr {
-    user: String,
-    total_pages: String,
-    page: String,
-    per_page: String,
-    total: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Track {
-    artist: ArtistAlbum,
-    streamable: String,
-    image: Vec<Image>,
-    mbid: String,
-    album: ArtistAlbum,
+    artist: TextFields,
+    album: TextFields,
     name: String,
     #[serde(rename = "@attr")]
     attr: Option<TrackAttr>,
-    url: String,
-    date: Option<Date>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-// TODO: change name
-struct ArtistAlbum {
-    mbid: String,
+struct TextFields {
     #[serde(rename = "#text")]
     text: String,
 }
@@ -57,20 +38,6 @@ struct ArtistAlbum {
 #[derive(Debug, Serialize, Deserialize)]
 struct TrackAttr {
     nowplaying: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Date {
-    uts: String,
-    #[serde(rename = "#text")]
-    text: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Image {
-    size: String,
-    #[serde(rename = "#text")]
-    text: String,
 }
 
 pub fn verify() -> bool {
