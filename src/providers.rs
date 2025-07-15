@@ -45,23 +45,40 @@ impl Platforms {
 
 pub struct Provider {
     platform: Platforms,
+    spotify_access_token: Option<String>,
 }
 
 impl Provider {
     pub fn new(platform: Platforms) -> Self {
         platform.verify();
         println!("Provider {:?}", platform);
-        Self { platform: platform }
+        Self {
+            platform: platform,
+            spotify_access_token: None,
+        }
     }
 
     pub async fn connect(&mut self) {
+        let mut success = false;
+
         match self.platform {
             Platforms::Spotify => {
-                let _ = spotify::connect().await;
+                match spotify::connect().await {
+                    Ok(access_token) => {
+                        self.spotify_access_token = Some(access_token);
+                        success = true;
+                    }
+                    Err(_) => {
+                        panic!("Error occured during Spotify connection");
+                    }
+                };
             }
             _ => {
                 println!("No login implementation detected for {:?}", self.platform);
             }
+        }
+        if success {
+            println!("Successfully connected to {:?}", self.platform);
         }
     }
 

@@ -1,10 +1,10 @@
 use actix_web::{
-    dev::ServerHandle, get, middleware, web, App, HttpResponse, HttpServer, Responder
+    App, HttpResponse, HttpServer, Responder, dev::ServerHandle, get, middleware, web,
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use parking_lot::Mutex;
 use rand::distr::{Alphanumeric, SampleString};
-use reqwest::header::{HeaderMap, AUTHORIZATION};
+use reqwest::header::{AUTHORIZATION, HeaderMap};
 use serde::Deserialize;
 use std::{env, sync::Arc};
 
@@ -38,14 +38,22 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<String, 
     let client_secret = env::var(CLIENT_SECRET_ENV).unwrap();
     let encrypted_client_settings = format!("{}:{}", client_id, client_secret);
 
-    headers.insert(AUTHORIZATION, format!("Basic {}", BASE64_STANDARD.encode(encrypted_client_settings)).parse().unwrap());
+    headers.insert(
+        AUTHORIZATION,
+        format!(
+            "Basic {}",
+            BASE64_STANDARD.encode(encrypted_client_settings)
+        )
+        .parse()
+        .unwrap(),
+    );
 
     let resp = reqwest::Client::new()
         .post(ACCESS_TOKEN_API_LINK)
         .form(&[
             ("grant_type", "authorization_code"),
             ("code", code.as_ref()),
-            ("redirect_uri", redirect_uri.as_ref())
+            ("redirect_uri", redirect_uri.as_ref()),
         ])
         .headers(headers)
         .send()
@@ -53,9 +61,8 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<String, 
         .expect("send");
     if resp.status() != 200 {
         // TODO: idk, should return error or panic (?)
+        // TODO: add proper logging
     }
-    // TODO: add proper logging
-    println!("Response status {}", resp.status());
 
     let json = resp.json::<AccessTokenJson>().await?;
     Ok(json.access_token)
@@ -91,19 +98,25 @@ async fn callback(
     HttpResponse::NoContent().finish()
 }
 
-pub async fn connect() -> Result<(), std::io::Error> {
-    // TODO: host a /login endpoint like in the official post so that a DE is not needed
-    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
-
-    let redirect_uri = format!("http://{}:{}/callback", IP, PORT);
+fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     let mut url = String::from(AUTHORIZE_API_LINK);
-    let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
 
     url.push_str("?response_type=code");
     url.push_str(format!("&client_id={}", env::var(CLIENT_ID_ENV).unwrap()).as_str());
     url.push_str("&scope=user-read-currently-playing");
     url.push_str(format!("&redirect_uri={}", redirect_uri).as_str());
     url.push_str(format!("&state={}", state).as_str());
+
+    url
+}
+
+pub async fn connect() -> Result<String, std::io::Error> {
+    // TODO: host a /login endpoint like in the official post so that a DE is not needed
+    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
+
+    let redirect_uri = format!("http://{}:{}/callback", IP, PORT);
+    let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
+    let url = get_authorize_url(&redirect_uri, &state);
 
     match open::that(url) {
         Ok(_) => {}
@@ -140,10 +153,10 @@ pub async fn connect() -> Result<(), std::io::Error> {
     if state != *query_state.state.lock() {
         panic!("Incorrect given state");
     }
-    let access_token = get_access_token(query_state.code.lock().clone(), redirect_uri).await.unwrap();
-    println!("{}", access_token);
-    Ok(())
-
+    let access_token = get_access_token(query_state.code.lock().clone(), redirect_uri)
+        .await
+        .unwrap();
+    Ok(access_token)
 }
 
 #[derive(Default)]
