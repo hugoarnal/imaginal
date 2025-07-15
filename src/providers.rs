@@ -15,7 +15,7 @@ pub struct Song {
     album: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Platforms {
     Spotify,
     LastFM,
@@ -65,7 +65,7 @@ pub struct Provider {
 impl Provider {
     pub fn new(platform: Platforms) -> Self {
         platform.verify();
-        println!("Provider {:?}", platform);
+        log::info!("Using provider {:?}", platform);
         Self {
             platform: platform,
             spotify_access_token: None,
@@ -88,11 +88,11 @@ impl Provider {
                 };
             }
             _ => {
-                println!("No login implementation detected for {:?}", self.platform);
+                log::warn!("No login implementation detected for {:?}", self.platform);
             }
         }
         if success {
-            println!("Successfully connected to {:?}", self.platform);
+            log::debug!("Successfully connected to {:?}", self.platform);
         }
     }
 
@@ -120,7 +120,9 @@ impl Provider {
     }
 
     pub fn wait(&self) {
-        thread::sleep(time::Duration::from_secs(self.platform.ratelimit()));
+        let duration = time::Duration::from_secs(self.platform.ratelimit());
+        log::debug!("Waiting {:?}s until next request", duration);
+        thread::sleep(duration);
     }
 }
 
@@ -143,6 +145,7 @@ fn get_platform_from_env() -> Option<Platforms> {
 pub fn detect_platform() -> Option<Platforms> {
     // Prioritize LastFM over other platforms (due to simplicity etc...)
     // TODO: explain in docs
+    log::debug!("Trying to detect platform using env");
     if check_env_existence(PRIORITY_PLATFORM, false) {
         return get_platform_from_env();
     }

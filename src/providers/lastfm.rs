@@ -87,7 +87,7 @@ pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {
             });
         }
         None => {
-            println!("No tracks detected at all, returning None");
+            log::debug!("No tracks detected at all");
         }
     }
     Ok(currently_playing)

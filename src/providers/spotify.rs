@@ -48,6 +48,7 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<String, 
         .unwrap(),
     );
 
+    log::debug!("Obtaining access token");
     let resp = reqwest::Client::new()
         .post(ACCESS_TOKEN_API_LINK)
         .form(&[
@@ -59,9 +60,11 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<String, 
         .send()
         .await
         .expect("send");
-    if resp.status() != 200 {
-        // TODO: idk, should return error or panic (?)
-        // TODO: add proper logging
+
+    let status_code = resp.status();
+    if status_code != 200 {
+        // TODO: Transform this panic into log::error once `/login` is implemented
+        panic!("Found status code {} instead of 200", status_code)
     }
 
     let json = resp.json::<AccessTokenJson>().await?;
@@ -94,6 +97,8 @@ async fn callback(
     stop_handle: web::Data<StopHandle>,
 ) -> impl Responder {
     query_state.update(info);
+
+    log::debug!("Response received, killing callback server");
     stop_handle.stop(false);
     HttpResponse::NoContent().finish()
 }
@@ -118,6 +123,7 @@ pub async fn connect() -> Result<String, std::io::Error> {
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
 
+    log::debug!("Opening {} in client's default browser", url);
     match open::that(url) {
         Ok(_) => {}
         Err(_) => {
@@ -129,6 +135,7 @@ pub async fn connect() -> Result<String, std::io::Error> {
     let stop_handle = web::Data::new(StopHandle::default());
     let query_state = web::Data::new(QueryState::default());
 
+    log::debug!("Starting callback server");
     let server = HttpServer::new({
         let stop_handle = stop_handle.clone();
         let query_state = query_state.clone();
