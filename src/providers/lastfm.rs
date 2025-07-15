@@ -73,10 +73,10 @@ struct Image {
     text: String,
 }
 
-pub fn verify() {
+pub fn verify() -> bool {
     check_env_existence(API_KEY_ENV, true);
     check_env_existence(SHARED_SECRET_ENV, true);
-    check_env_existence(USERNAME_ENV, true);
+    check_env_existence(USERNAME_ENV, true)
 }
 
 pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {

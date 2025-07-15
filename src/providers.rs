@@ -1,7 +1,11 @@
-use std::{thread, time};
+use std::{env, thread, time};
+
+use crate::utils::check_env_existence;
 
 mod lastfm;
 mod spotify;
+
+const PRIORITY_PLATFORM: &str = "PRIORITY_PLATFORM";
 
 #[allow(dead_code)]
 pub struct Song {
@@ -18,7 +22,7 @@ pub enum Platforms {
 }
 
 impl Platforms {
-    fn verify(&self) {
+    fn verify(&self) -> bool {
         match *self {
             Platforms::Spotify => spotify::verify(),
             Platforms::LastFM => lastfm::verify(),
@@ -108,4 +112,31 @@ impl Provider {
 
 pub fn new(platform: Platforms) -> Provider {
     Provider::new(platform)
+}
+
+fn get_platform_from_env() -> Option<Platforms> {
+    let platform_env = env::var(PRIORITY_PLATFORM).unwrap().to_lowercase();
+
+    if platform_env.contains("lastfm") {
+        return Some(Platforms::LastFM);
+    }
+    if platform_env.contains("spotify") {
+        return Some(Platforms::Spotify);
+    }
+    None
+}
+
+pub fn detect_platform() -> Option<Platforms> {
+    // Prioritize LastFM over other platforms (due to simplicity etc...)
+    // TODO: explain in docs
+    if check_env_existence(PRIORITY_PLATFORM, false) {
+        return get_platform_from_env();
+    }
+    if lastfm::verify() {
+        return Some(Platforms::LastFM);
+    }
+    if spotify::verify() {
+        return Some(Platforms::Spotify);
+    }
+    None
 }

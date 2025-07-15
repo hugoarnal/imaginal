@@ -6,7 +6,15 @@ use dotenv::dotenv;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
-    let mut provider = providers::new(providers::Platforms::Spotify);
+    let platform = providers::detect_platform();
+
+    // TODO: this is probably a bad way to handle this
+    match platform {
+        Some(_) => {}
+        None => panic!("No platforms detected."),
+    }
+
+    let mut provider = providers::new(platform.unwrap());
     provider.connect().await;
     loop {
         provider.currently_playing().await;
