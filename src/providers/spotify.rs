@@ -1,9 +1,10 @@
-use serde::Deserialize;
-use std::env;
-use rand::distr::{Alphanumeric, SampleString};
-use actix_web::{get, web, App, HttpServer, Responder};
-use actix_web::{HttpResponse, dev::ServerHandle, middleware};
+use actix_web::{
+    App, HttpResponse, HttpServer, Responder, dev::ServerHandle, get, middleware, web,
+};
 use parking_lot::Mutex;
+use rand::distr::{Alphanumeric, SampleString};
+use serde::Deserialize;
+use std::{env, sync::Arc};
 
 use crate::utils::check_env_existence;
 
@@ -27,11 +28,19 @@ pub fn verify() {
     check_env_existence(CLIENT_SECRET_ENV, true);
 }
 
+#[derive(Deserialize)]
+struct QueryInfo {
+    code: String,
+    state: String,
+}
+
 #[get("/callback")]
-async fn callback(stop_handle: web::Data<StopHandle>) -> impl Responder {
+async fn callback(
+    info: web::Query<QueryInfo>,
+    stop_handle: web::Data<StopHandle>,
+) -> impl Responder {
     stop_handle.stop(false);
     HttpResponse::NoContent().finish()
-    // format!("Hello world!")
 }
 
 pub async fn connect() -> Result<(), std::io::Error> {
@@ -58,7 +67,7 @@ pub async fn connect() -> Result<(), std::io::Error> {
     // https://github.com/actix/examples/blob/49ea95e9e69e64f5c14f4c43692e4e7916218d6d/shutdown-server/src/main.rs
     let stop_handle = web::Data::new(StopHandle::default());
 
-    let srv = HttpServer::new({
+    let server = HttpServer::new({
         let stop_handle = stop_handle.clone();
 
         move || {
@@ -72,9 +81,12 @@ pub async fn connect() -> Result<(), std::io::Error> {
     .workers(1)
     .run();
 
-    stop_handle.register(srv.handle());
+    stop_handle.register(server.handle());
 
-    srv.await
+    server.await?;
+    println!("Code: {}", "TODO");
+    println!("State: {}", "TODO");
+    Ok(())
 }
 
 #[derive(Default)]

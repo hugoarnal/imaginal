@@ -11,7 +11,7 @@ const USERNAME_ENV: &str = "LASTFM_USERNAME";
 
 // Generated using Hoppscotch data schema, very useful
 #[derive(Debug, Serialize, Deserialize)]
-pub struct CurrentlyPlayingSchema {
+struct CurrentlyPlayingSchema {
     recenttracks: Recenttracks,
 }
 
