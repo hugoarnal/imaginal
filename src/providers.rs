@@ -17,6 +17,13 @@ pub enum Platforms {
 }
 
 impl Platforms {
+    fn verify(&self) {
+        match *self {
+            Platforms::Spotify => spotify::verify(),
+            Platforms::LastFM => lastfm::verify(),
+        }
+    }
+
     fn ratelimit(&self) -> u64 {
         match *self {
             Platforms::Spotify => 2,
@@ -34,14 +41,7 @@ pub struct Provider {
 
 impl Provider {
     pub fn new(platform: Platforms) -> Self {
-        match platform {
-            Platforms::Spotify => {
-                spotify::verify();
-            },
-            Platforms::LastFM => {
-                lastfm::verify();
-            }
-        }
+        platform.verify();
         Self {
             platform: platform,
             access_token: String::new()
