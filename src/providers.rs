@@ -3,6 +3,7 @@ use std::{thread, time};
 mod lastfm;
 mod spotify;
 
+#[allow(dead_code)]
 pub struct CurrentlyPlaying {
     playing: bool,
     title: String,
@@ -28,6 +29,18 @@ impl Platforms {
         match *self {
             Platforms::Spotify => 2,
             Platforms::LastFM => 2,
+        }
+    }
+
+    // TODO: can't this be type aliased?
+    fn currently_playing(&self) -> impl Future<Output = Result<std::option::Option<CurrentlyPlaying>, reqwest::Error>> {
+        match *self {
+            Platforms::Spotify => {
+                todo!("Spotify playing implementation")
+            }
+            Platforms::LastFM => {
+                lastfm::currently_playing()
+            }
         }
     }
 }
@@ -60,21 +73,15 @@ impl Provider {
     }
 
     pub async fn currently_playing(&mut self) {
-        match self.platform {
-            Platforms::Spotify => {
-                todo!("Spotify playing implementation");
+        match self.platform.currently_playing().await {
+            Ok(currently_playing) => {
+                let song = currently_playing.unwrap();
+                println!("{} - {}", song.title, song.artist);
+                println!("Album: {}", song.album);
             },
-            Platforms::LastFM => {
-                // TODO: horrid error handling
-                match lastfm::currently_playing().await {
-                    Ok(currently_playing) => {
-                        println!("{}", currently_playing.unwrap().title);
-                    },
-                    Err(_) => {
-                        println!("Error occured oh no");
-                    }
-                }
-            },
+            Err(_) => {
+                println!("Error occured oh no");
+            }
         }
     }
 
