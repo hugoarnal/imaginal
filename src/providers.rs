@@ -1,3 +1,5 @@
+use std::{thread, time};
+
 mod lastfm;
 mod spotify;
 
@@ -12,6 +14,15 @@ pub struct CurrentlyPlaying {
 pub enum Platforms {
     Spotify,
     LastFM,
+}
+
+impl Platforms {
+    fn ratelimit(&self) -> u64 {
+        match *self {
+            Platforms::Spotify => 2,
+            Platforms::LastFM => 2,
+        }
+    }
 }
 
 pub struct Provider {
@@ -65,6 +76,10 @@ impl Provider {
                 }
             },
         }
+    }
+
+    pub fn wait(&self) {
+        thread::sleep(time::Duration::from_secs(self.platform.ratelimit()));
     }
 }
 
