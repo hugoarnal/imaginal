@@ -57,7 +57,7 @@ impl Provider {
     pub async fn connect(&mut self) {
         match self.platform {
             Platforms::Spotify => {
-                spotify::connect();
+                let _ = spotify::connect().await;
             }
             _ => {
                 println!("No login implementation detected for {:?}", self.platform);

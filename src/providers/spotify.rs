@@ -1,5 +1,9 @@
 use serde::Deserialize;
 use std::env;
+use rand::distr::{Alphanumeric, SampleString};
+use actix_web::{get, web, App, HttpServer, Responder};
+use actix_web::{HttpResponse, dev::ServerHandle, middleware};
+use parking_lot::Mutex;
 
 use crate::utils::check_env_existence;
 
@@ -15,19 +19,26 @@ const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
+const IP: &str = "127.0.0.1";
+const PORT: u16 = 9761;
 
 pub fn verify() {
     check_env_existence(CLIENT_ID_ENV, true);
     check_env_existence(CLIENT_SECRET_ENV, true);
 }
 
-use rand::distr::{Alphanumeric, SampleString};
+#[get("/callback")]
+async fn callback(stop_handle: web::Data<StopHandle>) -> impl Responder {
+    stop_handle.stop(false);
+    HttpResponse::NoContent().finish()
+    // format!("Hello world!")
+}
 
-pub fn connect() {
+pub async fn connect() -> Result<(), std::io::Error> {
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 
-    let redirect_uri = String::from("http://127.0.0.1:9761/callback");
+    let redirect_uri = format!("http://{}:{}/callback", IP, PORT);
     let mut url = String::from(AUTHORIZE_API_LINK);
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
 
@@ -43,4 +54,43 @@ pub fn connect() {
             panic!("Couldn't open Spotify connection link");
         }
     };
+
+    // https://github.com/actix/examples/blob/49ea95e9e69e64f5c14f4c43692e4e7916218d6d/shutdown-server/src/main.rs
+    let stop_handle = web::Data::new(StopHandle::default());
+
+    let srv = HttpServer::new({
+        let stop_handle = stop_handle.clone();
+
+        move || {
+            App::new()
+                .app_data(stop_handle.clone())
+                .service(callback)
+                .wrap(middleware::Logger::default())
+        }
+    })
+    .bind((IP, PORT))?
+    .workers(1)
+    .run();
+
+    stop_handle.register(srv.handle());
+
+    srv.await
+}
+
+#[derive(Default)]
+struct StopHandle {
+    inner: Mutex<Option<ServerHandle>>,
+}
+
+impl StopHandle {
+    /// Sets the server handle to stop.
+    pub(crate) fn register(&self, handle: ServerHandle) {
+        *self.inner.lock() = Some(handle);
+    }
+
+    /// Sends stop signal through contained server handle.
+    pub(crate) fn stop(&self, graceful: bool) {
+        #[allow(clippy::let_underscore_future)]
+        let _ = self.inner.lock().as_ref().unwrap().stop(graceful);
+    }
 }
