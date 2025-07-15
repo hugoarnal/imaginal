@@ -1,6 +1,7 @@
 use std::env;
 use serde::{Serialize, Deserialize};
 
+use crate::utils::check_env_existence;
 use crate::providers::CurrentlyPlaying;
 
 const API_URL: &str = "http://ws.audioscrobbler.com/2.0/";
@@ -8,25 +9,10 @@ const API_KEY_ENV: &str = "LASTFM_API_KEY";
 const SHARED_SECRET_ENV: &str = "LASTFM_SHARED_SECRET";
 const USERNAME_ENV: &str = "LASTFM_USERNAME";
 
-// todo comment already in spotify.rs
-fn check_env_existance(var: &str, panic: bool) -> bool {
-    match env::var(var) {
-        Ok(_) => {
-            true
-        },
-        Err(_) => {
-            if panic {
-                panic!("Couldn't find {} environment variable.", var);
-            }
-            false
-        }
-    }
-}
-
 pub fn verify() {
-    check_env_existance(API_KEY_ENV, true);
-    check_env_existance(SHARED_SECRET_ENV, true);
-    check_env_existance(USERNAME_ENV, true);
+    check_env_existence(API_KEY_ENV, true);
+    check_env_existence(SHARED_SECRET_ENV, true);
+    check_env_existence(USERNAME_ENV, true);
 }
 
 // Generated using Hoppscotch data schema, very useful

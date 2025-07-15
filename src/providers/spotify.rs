@@ -1,7 +1,7 @@
 use std::env;
 use serde::{Deserialize};
 
-use crate::providers::CurrentlyPlaying;
+use crate::utils::check_env_existence;
 
 #[allow(dead_code)]
 #[derive(Deserialize)]
@@ -22,25 +22,9 @@ const CURRENTLY_PLAYING_API_LINK: &str = "https://accounts.spotify.com/me/player
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 
-// TODO: make this a little better because this is kinda mid
-// or factor out into a utils module (?)
-fn check_env_existance(var: &str, panic: bool) -> bool {
-    match env::var(var) {
-        Ok(_) => {
-            true
-        },
-        Err(_) => {
-            if panic {
-                panic!("Couldn't find {} environment variable.", var);
-            }
-            false
-        }
-    }
-}
-
 pub fn verify() {
-    check_env_existance(CLIENT_ID_ENV, true);
-    check_env_existance(CLIENT_SECRET_ENV, true);
+    check_env_existence(CLIENT_ID_ENV, true);
+    check_env_existence(CLIENT_SECRET_ENV, true);
 }
 
 // TODO: can delete like all of this because we need to use the OAuth flow instead of this

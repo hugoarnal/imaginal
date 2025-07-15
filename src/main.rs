@@ -1,4 +1,5 @@
 mod providers;
+mod utils;
 
 use dotenv::dotenv;
 
