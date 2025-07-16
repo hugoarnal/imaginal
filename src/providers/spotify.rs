@@ -222,6 +222,10 @@ pub async fn currently_playing(access_token: String) -> Result<Option<Song>, req
         .send()
         .await?;
 
+    if response.status() == 204 {
+        return Ok(None);
+    }
+
     let results = response.json::<CurrentlyPlayingSchema>().await?;
 
     let artist_name: String;
