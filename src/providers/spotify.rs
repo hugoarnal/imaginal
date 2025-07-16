@@ -168,6 +168,7 @@ pub async fn connect() -> Result<String, std::io::Error> {
                 .wrap(middleware::Logger::default())
         }
     })
+    .disable_signals()
     .bind((IP, port))?
     .workers(1)
     .run();
