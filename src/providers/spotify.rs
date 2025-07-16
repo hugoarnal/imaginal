@@ -18,8 +18,9 @@ const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
 const CURRENTLY_PLAYING_API_LINK: &str = "https://api.spotify.com/v1/me/player/currently-playing";
 const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
 const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
+const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
-const PORT: u16 = 9761;
+const DEFAULT_PORT: u16 = 9761;
 
 #[derive(Clone)]
 pub struct Parameters {
@@ -130,7 +131,13 @@ pub async fn connect() -> Result<String, std::io::Error> {
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 
-    let redirect_uri = format!("http://{}:{}/callback", IP, PORT);
+    let mut port = DEFAULT_PORT;
+
+    if check_env_existence(PORT_ENV, false) {
+        port = env::var(PORT_ENV).unwrap().parse().unwrap();
+    }
+
+    let redirect_uri = format!("http://{}:{}/callback", IP, port);
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
 
@@ -159,7 +166,7 @@ pub async fn connect() -> Result<String, std::io::Error> {
                 .wrap(middleware::Logger::default())
         }
     })
-    .bind((IP, PORT))?
+    .bind((IP, port))?
     .workers(1)
     .run();
 
