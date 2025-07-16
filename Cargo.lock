@@ -973,7 +973,6 @@ dependencies = [
  "env_logger",
  "log",
  "open",
- "parking_lot",
  "rand",
  "reqwest",
  "serde",

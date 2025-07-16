@@ -2,11 +2,13 @@ use actix_web::{
     App, HttpResponse, HttpServer, Responder, dev::ServerHandle, get, middleware, web,
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
-use parking_lot::Mutex;
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::header::{AUTHORIZATION, HeaderMap};
 use serde::{Deserialize, Serialize};
-use std::{env, sync::Arc};
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
     providers::{PlatformParameters, Song},
@@ -97,8 +99,8 @@ struct QueryState {
 
 impl QueryState {
     fn update(&self, info: web::Query<QueryInfo>) {
-        *self.code.lock() = info.code.clone();
-        *self.state.lock() = info.state.clone();
+        *self.code.lock().unwrap() = info.code.clone();
+        *self.state.lock().unwrap() = info.state.clone();
     }
 }
 
@@ -111,7 +113,7 @@ async fn callback(
     query_state.update(info);
 
     log::debug!("Response received, killing callback server");
-    stop_handle.stop(false);
+    stop_handle.stop(false).await;
     HttpResponse::NoContent().finish()
 }
 
@@ -175,10 +177,10 @@ pub async fn connect() -> Result<String, std::io::Error> {
     server.await?;
 
     // TODO: correct error handling
-    if state != *query_state.state.lock() {
+    if state != *query_state.state.lock().unwrap() {
         panic!("Incorrect given state");
     }
-    let access_token = get_access_token(query_state.code.lock().clone(), redirect_uri)
+    let access_token = get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri)
         .await
         .unwrap();
     Ok(access_token)
@@ -192,13 +194,18 @@ struct StopHandle {
 impl StopHandle {
     /// Sets the server handle to stop.
     pub(crate) fn register(&self, handle: ServerHandle) {
-        *self.inner.lock() = Some(handle);
+        *self.inner.lock().unwrap() = Some(handle);
     }
 
     /// Sends stop signal through contained server handle.
-    pub(crate) fn stop(&self, graceful: bool) {
-        #[allow(clippy::let_underscore_future)]
-        let _ = self.inner.lock().as_ref().unwrap().stop(graceful);
+    pub(crate) async fn stop(&self, graceful: bool) {
+        self.inner
+            .lock()
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .stop(graceful)
+            .await
     }
 }
 
