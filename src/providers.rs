@@ -21,6 +21,10 @@ pub enum Platforms {
     LastFM,
 }
 
+pub trait PlatformParameters {
+    fn get_spotify_access_token(&self) -> String;
+}
+
 // this is for future platforms implementation, might remove?
 #[allow(unreachable_patterns)]
 impl Platforms {
@@ -42,13 +46,12 @@ impl Platforms {
         }
     }
 
-    // TODO: remove this "hard coded" access_token for an Option<PlatformParameter> or something like that?
     async fn currently_playing(
         &self,
-        access_token: Option<String>,
+        parameters: Option<impl PlatformParameters>,
     ) -> Result<Option<Song>, reqwest::Error> {
         match *self {
-            Platforms::Spotify => spotify::currently_playing(access_token.unwrap()).await,
+            Platforms::Spotify => spotify::currently_playing(parameters).await,
             Platforms::LastFM => lastfm::currently_playing().await,
             _ => {
                 todo!("This platform hasn't been implemented")
@@ -59,7 +62,7 @@ impl Platforms {
 
 pub struct Provider {
     platform: Platforms,
-    spotify_access_token: Option<String>,
+    spotify_params: Option<spotify::Parameters>,
 }
 
 impl Provider {
@@ -68,7 +71,7 @@ impl Provider {
         log::info!("Using provider {:?}", platform);
         Self {
             platform: platform,
-            spotify_access_token: None,
+            spotify_params: None,
         }
     }
 
@@ -79,7 +82,9 @@ impl Provider {
             Platforms::Spotify => {
                 match spotify::connect().await {
                     Ok(access_token) => {
-                        self.spotify_access_token = Some(access_token);
+                        self.spotify_params = Some(spotify::Parameters {
+                            access_token
+                        });
                         success = true;
                     }
                     Err(_) => {
@@ -96,10 +101,19 @@ impl Provider {
         }
     }
 
+    fn retrieve_params(&self) -> Option<impl PlatformParameters> {
+        match self.platform {
+            Platforms::Spotify => self.spotify_params.clone(),
+            Platforms::LastFM => None
+        }
+    }
+
     pub async fn currently_playing(&mut self) {
+        let params  = self.retrieve_params();
+
         match self
             .platform
-            .currently_playing(self.spotify_access_token.clone())
+            .currently_playing(params)
             .await
         {
             Ok(currently_playing) => {
