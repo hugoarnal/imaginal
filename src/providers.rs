@@ -82,9 +82,7 @@ impl Provider {
             Platforms::Spotify => {
                 match spotify::connect().await {
                     Ok(access_token) => {
-                        self.spotify_params = Some(spotify::Parameters {
-                            access_token
-                        });
+                        self.spotify_params = Some(spotify::Parameters { access_token });
                         success = true;
                     }
                     Err(_) => {
@@ -104,18 +102,14 @@ impl Provider {
     fn retrieve_params(&self) -> Option<impl PlatformParameters> {
         match self.platform {
             Platforms::Spotify => self.spotify_params.clone(),
-            Platforms::LastFM => None
+            Platforms::LastFM => None,
         }
     }
 
     pub async fn currently_playing(&mut self) {
-        let params  = self.retrieve_params();
+        let params = self.retrieve_params();
 
-        match self
-            .platform
-            .currently_playing(params)
-            .await
-        {
+        match self.platform.currently_playing(params).await {
             Ok(currently_playing) => {
                 match currently_playing {
                     Some(song) => {

@@ -8,7 +8,10 @@ use reqwest::header::{AUTHORIZATION, HeaderMap};
 use serde::{Deserialize, Serialize};
 use std::{env, sync::Arc};
 
-use crate::{providers::{PlatformParameters, Song}, utils::check_env_existence};
+use crate::{
+    providers::{PlatformParameters, Song},
+    utils::check_env_existence,
+};
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
@@ -215,17 +218,21 @@ struct Artist {
     name: String,
 }
 
-pub async fn currently_playing(parameters: Option<impl PlatformParameters>) -> Result<Option<Song>, reqwest::Error> {
+pub async fn currently_playing(
+    parameters: Option<impl PlatformParameters>,
+) -> Result<Option<Song>, reqwest::Error> {
     match parameters {
-        Some(_) => {},
-        None => panic!("No access_token given")
+        Some(_) => {}
+        None => panic!("No access_token given"),
     }
 
     let mut headers = HeaderMap::new();
 
     headers.insert(
         AUTHORIZATION,
-        format!("Bearer {}", parameters.unwrap().get_spotify_access_token()).parse().unwrap(),
+        format!("Bearer {}", parameters.unwrap().get_spotify_access_token())
+            .parse()
+            .unwrap(),
     );
 
     let client = reqwest::Client::new();
