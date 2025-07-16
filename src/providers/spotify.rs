@@ -29,12 +29,9 @@ impl PlatformParameters for Parameters {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Deserialize)]
 struct AccessTokenJson {
     access_token: String,
-    token_type: String,
-    expires_in: i32,
 }
 
 pub fn verify(panic: bool) -> bool {

@@ -157,8 +157,6 @@ fn get_platform_from_env() -> Option<Platforms> {
 }
 
 pub fn detect_platform() -> Option<Platforms> {
-    // Prioritize LastFM over other platforms (due to simplicity etc...)
-    // TODO: explain in docs
     log::debug!("Trying to detect platform using env");
     if check_env_existence(PRIORITY_PLATFORM, false) {
         return get_platform_from_env();

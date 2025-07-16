@@ -12,7 +12,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let platform = providers::detect_platform();
 
-    // TODO: this is probably a bad way to handle this
     match platform {
         Some(p) => {
             log::debug!("Found platform {:?}", p.clone())
