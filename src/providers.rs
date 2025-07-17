@@ -129,7 +129,7 @@ impl Provider {
 
     pub fn wait(&self) {
         let duration = time::Duration::from_secs(self.platform.ratelimit());
-        log::debug!("Waiting {:?}s until next request", duration);
+        log::debug!("Waiting {:?} until next request", duration);
         thread::sleep(duration);
     }
 }
