@@ -15,7 +15,7 @@ pub struct Song {
     album: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum ErrorType {
     ExpiredToken,
     RequestError,
@@ -170,6 +170,9 @@ impl Provider {
             }
             Err(err) => {
                 log::error!("{}", err);
+                if err.error_type == ErrorType::ExpiredToken {
+                    self.connect().await;
+                }
             }
         }
     }

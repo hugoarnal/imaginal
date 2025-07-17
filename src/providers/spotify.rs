@@ -254,8 +254,14 @@ pub async fn currently_playing(
         .send()
         .await?;
 
-    if response.status() == 204 {
+    let status_code = response.status();
+    if status_code == 204 {
         return Ok(None);
+    } else if status_code == 401 {
+        return Err(providers::Error {
+            error_type: providers::ErrorType::ExpiredToken,
+            message: "Current token is expired".to_string(),
+        });
     }
 
     let results = response.json::<CurrentlyPlayingSchema>().await?;
