@@ -6,6 +6,7 @@ mod lastfm;
 mod spotify;
 
 const PRIORITY_PLATFORM: &str = "PRIORITY_PLATFORM";
+const RATELIMIT_WAIT_SECS: u64 = 60;
 
 #[allow(dead_code)]
 pub struct Song {
@@ -18,8 +19,9 @@ pub struct Song {
 #[derive(Debug, PartialEq, Eq)]
 pub enum ErrorType {
     ExpiredToken,
-    RequestError,
-    WebServerError,
+    Request,
+    WebServer,
+    Ratelimit,
     Unknown,
 }
 
@@ -32,7 +34,7 @@ pub struct Error {
 impl From<reqwest::Error> for Error {
     fn from(error: reqwest::Error) -> Self {
         Error {
-            error_type: ErrorType::RequestError,
+            error_type: ErrorType::Request,
             message: error.to_string(),
         }
     }
@@ -41,7 +43,7 @@ impl From<reqwest::Error> for Error {
 impl From<actix_web::Error> for Error {
     fn from(error: actix_web::Error) -> Self {
         Error {
-            error_type: ErrorType::WebServerError,
+            error_type: ErrorType::WebServer,
             message: error.to_string(),
         }
     }
@@ -170,8 +172,16 @@ impl Provider {
             }
             Err(err) => {
                 log::error!("{}", err);
-                if err.error_type == ErrorType::ExpiredToken {
-                    self.connect().await;
+                match err.error_type {
+                    ErrorType::ExpiredToken => {
+                        self.connect().await;
+                    }
+                    ErrorType::Ratelimit => {
+                        let duration = time::Duration::from_secs(RATELIMIT_WAIT_SECS);
+                        log::warn!("Waiting {:?} before retrying", duration);
+                        thread::sleep(duration);
+                    }
+                    _ => {}
                 }
             }
         }

@@ -68,7 +68,8 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
 
     if response.status() != 200 {
         let results = response.json::<Error>().await?;
-        let error_type: providers::ErrorType;
+        let mut error_type: providers::ErrorType = providers::ErrorType::Unknown;
+        let mut message = "Unhandled request error coming from LastFM";
 
         match results.error {
             6 => {
@@ -77,12 +78,16 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
             10 => {
                 panic!("Incorrect API Key")
             }
-            _ => error_type = providers::ErrorType::Unknown,
+            29 => {
+                error_type = providers::ErrorType::Ratelimit;
+                message = "Too many requests";
+            }
+            _ => {}
         }
 
         return Err(providers::Error {
             error_type: error_type,
-            message: "Unhandled request error coming from LastFM".to_string(),
+            message: message.to_string(),
         });
     }
 

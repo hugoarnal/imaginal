@@ -255,12 +255,17 @@ pub async fn currently_playing(
         .await?;
 
     let status_code = response.status();
-    if status_code == 204 {
+    if status_code == reqwest::StatusCode::NO_CONTENT {
         return Ok(None);
-    } else if status_code == 401 {
+    } else if status_code == reqwest::StatusCode::UNAUTHORIZED {
         return Err(providers::Error {
             error_type: providers::ErrorType::ExpiredToken,
             message: "Current token is expired".to_string(),
+        });
+    } else if status_code == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(providers::Error {
+            error_type: providers::ErrorType::Ratelimit,
+            message: "Too many requests".to_string(),
         });
     }
 
