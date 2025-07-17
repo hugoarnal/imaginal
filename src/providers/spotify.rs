@@ -225,9 +225,8 @@ struct Artist {
 pub async fn currently_playing(
     parameters: Option<PlatformParameters>,
 ) -> Result<Option<Song>, providers::Error> {
-    match parameters {
-        Some(_) => {}
-        None => panic!("No access_token given"),
+    if parameters.is_none() {
+        panic!("No access_token given");
     }
 
     let mut headers = HeaderMap::new();
