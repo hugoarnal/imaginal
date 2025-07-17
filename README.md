@@ -22,3 +22,9 @@ Build the binary:
 ```sh
 cargo build --release
 ```
+
+## References
+
+- Spotify Currently Playing: https://developer.spotify.com/documentation/web-api/reference/get-the-users-currently-playing-track
+
+- LastFM Currently Playing: https://www.last.fm/api/show/user.getRecentTracks
