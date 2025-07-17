@@ -118,7 +118,7 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
-pub async fn connect() -> Result<String, providers::Error> {
+pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 
@@ -170,7 +170,10 @@ pub async fn connect() -> Result<String, providers::Error> {
     if state != *query_state.state.lock().unwrap() {
         panic!("Incorrect given state");
     }
-    Ok(get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?)
+    let mut params = PlatformParameters::default();
+    params.spotify_access_token =
+        Some(get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?);
+    Ok(Some(params))
 }
 
 #[derive(Default)]

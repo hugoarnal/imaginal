@@ -78,6 +78,16 @@ pub struct PlatformParameters {
 // this is for future platforms implementation, might remove?
 #[allow(unreachable_patterns)]
 impl Platforms {
+    async fn connect(&self) -> Result<Option<PlatformParameters>, Error> {
+        match *self {
+            Platforms::Spotify => spotify::connect().await,
+            _ => {
+                log::warn!("No login implementation detected for {:?}", self);
+                Ok(None)
+            }
+        }
+    }
+
     fn verify(&self) -> bool {
         match *self {
             Platforms::Spotify => spotify::verify(true),
@@ -126,24 +136,15 @@ impl Provider {
     }
 
     pub async fn connect(&mut self) {
-        let mut success = false;
+        let success: bool;
 
-        match self.platform {
-            Platforms::Spotify => {
-                match spotify::connect().await {
-                    Ok(access_token) => {
-                        let mut params = PlatformParameters::default();
-                        params.spotify_access_token = Some(access_token.clone());
-                        self.params = Some(params);
-                        success = true;
-                    }
-                    Err(_) => {
-                        panic!("Error occured during Spotify connection");
-                    }
-                };
+        match self.platform.connect().await {
+            Ok(params) => {
+                self.params = params;
+                success = true;
             }
-            _ => {
-                log::warn!("No login implementation detected for {:?}", self.platform);
+            Err(_) => {
+                panic!("Error occured during Spotify connection");
             }
         }
         if success {
