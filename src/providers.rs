@@ -1,4 +1,4 @@
-use std::{env, fmt::Display, thread, time};
+use std::{env, fmt::{self, Display}, io, thread, time};
 
 use crate::utils::check_env_existence;
 
@@ -49,8 +49,8 @@ impl From<actix_web::Error> for Error {
     }
 }
 
-impl From<std::io::Error> for Error {
-    fn from(error: std::io::Error) -> Self {
+impl From<io::Error> for Error {
+    fn from(error: io::Error) -> Self {
         Error {
             error_type: ErrorType::Unknown,
             message: error.to_string(),
@@ -59,7 +59,7 @@ impl From<std::io::Error> for Error {
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:?}: {}", self.error_type, self.message)
     }
 }

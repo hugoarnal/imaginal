@@ -3,8 +3,8 @@ use actix_web::{
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rand::distr::{Alphanumeric, SampleString};
-use reqwest::header::{AUTHORIZATION, HeaderMap};
-use serde::{Deserialize, Serialize};
+use reqwest::header::HeaderMap;
+use serde::Deserialize;
 use std::{
     env,
     sync::{Arc, Mutex},
@@ -42,7 +42,7 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<String, 
     let encrypted_client_settings = format!("{}:{}", client_id, client_secret);
 
     headers.insert(
-        AUTHORIZATION,
+        reqwest::header::AUTHORIZATION,
         format!(
             "Basic {}",
             BASE64_STANDARD.encode(encrypted_client_settings)
@@ -199,25 +199,25 @@ impl StopHandle {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct CurrentlyPlayingSchema {
     is_playing: bool,
     item: Item,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Item {
     album: Album,
     artists: Vec<Artist>,
     name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Album {
     name: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Artist {
     name: String,
 }
@@ -232,7 +232,7 @@ pub async fn currently_playing(
     let mut headers = HeaderMap::new();
 
     headers.insert(
-        AUTHORIZATION,
+        reqwest::header::AUTHORIZATION,
         format!(
             "Bearer {}",
             parameters.unwrap().spotify_access_token.unwrap()

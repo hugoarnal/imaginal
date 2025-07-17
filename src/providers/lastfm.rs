@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::env;
 
 use crate::providers::{self, Song};
@@ -10,17 +10,17 @@ const SHARED_SECRET_ENV: &str = "LASTFM_SHARED_SECRET";
 const USERNAME_ENV: &str = "LASTFM_USERNAME";
 
 // Generated using Hoppscotch data schema, very useful
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct CurrentlyPlayingSchema {
     recenttracks: RecentTracks,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct RecentTracks {
     track: Vec<Track>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Track {
     artist: TextFields,
     album: TextFields,
@@ -29,18 +29,18 @@ struct Track {
     attr: Option<TrackAttr>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct TextFields {
     #[serde(rename = "#text")]
     text: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct TrackAttr {
     nowplaying: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Deserialize)]
 struct Error {
     error: u16,
 }
