@@ -40,6 +40,11 @@ struct TrackAttr {
     nowplaying: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct Error {
+    error: u16,
+}
+
 pub fn verify(panic: bool) -> bool {
     check_env_existence(API_KEY_ENV, panic);
     check_env_existence(SHARED_SECRET_ENV, panic);
@@ -60,6 +65,26 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
 
     let client = reqwest::Client::new();
     let response = client.get(API_URL).query(&query).send().await?;
+
+    if response.status() != 200 {
+        let results = response.json::<Error>().await?;
+        let error_type: providers::ErrorType;
+
+        match results.error {
+            6 => {
+                panic!("Unknown user")
+            }
+            10 => {
+                panic!("Incorrect API Key")
+            }
+            _ => error_type = providers::ErrorType::Unknown,
+        }
+
+        return Err(providers::Error {
+            error_type: error_type,
+            message: "Unhandled request error coming from LastFM".to_string(),
+        });
+    }
 
     let results = response.json::<CurrentlyPlayingSchema>().await?;
 
