@@ -1,4 +1,4 @@
-use std::{env, thread, time};
+use std::{env, fmt::Display, thread, time};
 
 use crate::utils::check_env_existence;
 
@@ -13,6 +13,53 @@ pub struct Song {
     title: String,
     artist: String,
     album: String,
+}
+
+#[derive(Debug)]
+pub enum ErrorType {
+    ExpiredToken,
+    RequestError,
+    WebServerError,
+    Unknown,
+}
+
+#[derive(Debug)]
+pub struct Error {
+    error_type: ErrorType,
+    message: String,
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(error: reqwest::Error) -> Self {
+        Error {
+            error_type: ErrorType::RequestError,
+            message: error.to_string(),
+        }
+    }
+}
+
+impl From<actix_web::Error> for Error {
+    fn from(error: actix_web::Error) -> Self {
+        Error {
+            error_type: ErrorType::WebServerError,
+            message: error.to_string(),
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        Error {
+            error_type: ErrorType::Unknown,
+            message: error.to_string(),
+        }
+    }
+}
+
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}: {}", self.error_type, self.message)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -49,7 +96,7 @@ impl Platforms {
     async fn currently_playing(
         &self,
         parameters: Option<impl PlatformParameters>,
-    ) -> Result<Option<Song>, reqwest::Error> {
+    ) -> Result<Option<Song>, Error> {
         match *self {
             Platforms::Spotify => spotify::currently_playing(parameters).await,
             Platforms::LastFM => lastfm::currently_playing().await,

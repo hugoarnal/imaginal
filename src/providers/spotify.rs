@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    providers::{PlatformParameters, Song},
+    providers::{self, PlatformParameters, Song},
     utils::check_env_existence,
 };
 
@@ -45,7 +45,7 @@ pub fn verify(panic: bool) -> bool {
     check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
-async fn get_access_token(code: String, redirect_uri: String) -> Result<String, reqwest::Error> {
+async fn get_access_token(code: String, redirect_uri: String) -> Result<String, providers::Error> {
     let mut headers = HeaderMap::new();
 
     let client_id = env::var(CLIENT_ID_ENV).unwrap();
@@ -129,7 +129,7 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
-pub async fn connect() -> Result<String, std::io::Error> {
+pub async fn connect() -> Result<String, providers::Error> {
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 
@@ -181,10 +181,7 @@ pub async fn connect() -> Result<String, std::io::Error> {
     if state != *query_state.state.lock().unwrap() {
         panic!("Incorrect given state");
     }
-    let access_token = get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri)
-        .await
-        .unwrap();
-    Ok(access_token)
+    Ok(get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?)
 }
 
 #[derive(Default)]
@@ -235,7 +232,7 @@ struct Artist {
 
 pub async fn currently_playing(
     parameters: Option<impl PlatformParameters>,
-) -> Result<Option<Song>, reqwest::Error> {
+) -> Result<Option<Song>, providers::Error> {
     match parameters {
         Some(_) => {}
         None => panic!("No access_token given"),

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-use crate::providers::Song;
+use crate::providers::{self, Song};
 use crate::utils::check_env_existence;
 
 const API_URL: &str = "http://ws.audioscrobbler.com/2.0/";
@@ -46,7 +46,7 @@ pub fn verify(panic: bool) -> bool {
     check_env_existence(USERNAME_ENV, panic)
 }
 
-pub async fn currently_playing() -> Result<Option<Song>, reqwest::Error> {
+pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
     let username = env::var(USERNAME_ENV).unwrap();
     let api_key = env::var(API_KEY_ENV).unwrap();
 
