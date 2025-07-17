@@ -73,6 +73,7 @@ pub enum Platforms {
 #[derive(Clone, Default)]
 pub struct PlatformParameters {
     spotify_access_token: Option<String>,
+    spotify_refresh_token: Option<String>,
 }
 
 // this is for future platforms implementation, might remove?
@@ -83,6 +84,17 @@ impl Platforms {
             Platforms::Spotify => spotify::connect().await,
             _ => {
                 log::warn!("No login implementation detected for {:?}", self);
+                Ok(None)
+            }
+        }
+    }
+
+    async fn refresh(&self, parameters: Option<PlatformParameters>) -> Result<Option<PlatformParameters>, Error> {
+        match *self {
+            // TODO: yeah no
+            Platforms::Spotify => Ok(Some(spotify::refresh(parameters.unwrap()).await?)),
+            _ => {
+                log::warn!("No refresh implementation detected for {:?}", self);
                 Ok(None)
             }
         }
@@ -152,6 +164,23 @@ impl Provider {
         }
     }
 
+    pub async fn refresh(&mut self) {
+        let success: bool;
+
+        match self.platform.refresh(self.params.clone()).await {
+            Ok(params) => {
+                self.params = params;
+                success = true;
+            }
+            Err(_) => {
+                panic!("Error occured during Spotify connection");
+            }
+        }
+        if success {
+            log::debug!("Successfully connected to {:?}", self.platform);
+        }
+    }
+
     fn retrieve_params(&self) -> Option<PlatformParameters> {
         match self.platform {
             Platforms::Spotify => self.params.clone(),
@@ -178,7 +207,7 @@ impl Provider {
                 log::error!("{}", err);
                 match err.error_type {
                     ErrorType::ExpiredToken => {
-                        self.connect().await;
+                        self.refresh().await;
                     }
                     ErrorType::Ratelimit => {
                         let duration = time::Duration::from_secs(RATELIMIT_WAIT_SECS);
