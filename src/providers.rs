@@ -122,7 +122,7 @@ impl Provider {
                 };
             }
             Err(err) => {
-                panic!("{}", err);
+                log::error!("{}", err);
             }
         }
     }
