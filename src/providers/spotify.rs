@@ -35,7 +35,10 @@ pub fn verify(panic: bool) -> bool {
     check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
-async fn get_access_token(code: String, redirect_uri: String) -> Result<AccessTokenJson, providers::Error> {
+async fn get_access_token(
+    code: String,
+    redirect_uri: String,
+) -> Result<AccessTokenJson, providers::Error> {
     let mut headers = HeaderMap::new();
 
     let client_id = env::var(CLIENT_ID_ENV).unwrap();
@@ -75,7 +78,7 @@ async fn get_access_token(code: String, redirect_uri: String) -> Result<AccessTo
     Ok(json)
 }
 
-async fn get_refresh_token(parameters: PlatformParameters) -> Result<AccessTokenJson, providers::Error>{
+async fn get_refresh_token(refresh_token: String) -> Result<AccessTokenJson, providers::Error> {
     let client_id = env::var(CLIENT_ID_ENV).unwrap();
 
     log::debug!("Refreshing token");
@@ -83,8 +86,8 @@ async fn get_refresh_token(parameters: PlatformParameters) -> Result<AccessToken
         .post(ACCESS_TOKEN_API_LINK)
         .form(&[
             ("grant_type", "refresh_token"),
-            ("refresh_token", parameters.spotify_refresh_token.unwrap().as_str()),
-            ("client_id", client_id.as_str())
+            ("refresh_token", refresh_token.as_str()),
+            ("client_id", client_id.as_str()),
         ])
         .send()
         .await
@@ -103,14 +106,23 @@ async fn get_refresh_token(parameters: PlatformParameters) -> Result<AccessToken
     Ok(json)
 }
 
-pub async fn refresh(parameters: PlatformParameters) -> Result<PlatformParameters, providers::Error> {
-    let json = get_refresh_token(parameters.clone()).await?;
-    let mut new_params = parameters.clone();
+pub async fn refresh(
+    parameters: Option<PlatformParameters>,
+) -> Result<Option<PlatformParameters>, providers::Error> {
+    if parameters.is_none() {
+        return Err(providers::Error {
+            error_type: providers::ErrorType::Unknown,
+            message: "No parameters provided".to_string(),
+        });
+    }
+
+    let mut new_params = parameters.clone().unwrap();
+    let json = get_refresh_token(new_params.spotify_refresh_token.unwrap()).await?;
 
     new_params.spotify_access_token = Some(json.access_token);
     new_params.spotify_refresh_token = Some(json.refresh_token);
 
-    Ok(new_params)
+    Ok(Some(new_params))
 }
 
 #[derive(Deserialize)]
@@ -210,7 +222,8 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
         panic!("Incorrect given state");
     }
     let mut params = PlatformParameters::default();
-    let accces_token = get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
+    let accces_token =
+        get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
     params.spotify_access_token = Some(accces_token.access_token);
     params.spotify_refresh_token = Some(accces_token.refresh_token);
     Ok(Some(params))

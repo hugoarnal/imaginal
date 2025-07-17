@@ -1,4 +1,8 @@
-use std::{env, fmt::{self, Display}, io, thread, time};
+use std::{
+    env,
+    fmt::{self, Display},
+    io, thread, time,
+};
 
 use crate::utils::check_env_existence;
 
@@ -89,10 +93,12 @@ impl Platforms {
         }
     }
 
-    async fn refresh(&self, parameters: Option<PlatformParameters>) -> Result<Option<PlatformParameters>, Error> {
+    async fn refresh(
+        &self,
+        parameters: Option<PlatformParameters>,
+    ) -> Result<Option<PlatformParameters>, Error> {
         match *self {
-            // TODO: yeah no
-            Platforms::Spotify => Ok(Some(spotify::refresh(parameters.unwrap()).await?)),
+            Platforms::Spotify => spotify::refresh(parameters.clone()).await,
             _ => {
                 log::warn!("No refresh implementation detected for {:?}", self);
                 Ok(None)
