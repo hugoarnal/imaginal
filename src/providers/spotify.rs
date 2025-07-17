@@ -24,17 +24,6 @@ const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 9761;
 
-#[derive(Clone)]
-pub struct Parameters {
-    pub access_token: String,
-}
-
-impl PlatformParameters for Parameters {
-    fn get_spotify_access_token(&self) -> String {
-        self.access_token.clone()
-    }
-}
-
 #[derive(Deserialize)]
 struct AccessTokenJson {
     access_token: String,
@@ -231,7 +220,7 @@ struct Artist {
 }
 
 pub async fn currently_playing(
-    parameters: Option<impl PlatformParameters>,
+    parameters: Option<PlatformParameters>,
 ) -> Result<Option<Song>, providers::Error> {
     match parameters {
         Some(_) => {}
@@ -242,9 +231,12 @@ pub async fn currently_playing(
 
     headers.insert(
         AUTHORIZATION,
-        format!("Bearer {}", parameters.unwrap().get_spotify_access_token())
-            .parse()
-            .unwrap(),
+        format!(
+            "Bearer {}",
+            parameters.unwrap().spotify_access_token.unwrap()
+        )
+        .parse()
+        .unwrap(),
     );
 
     let client = reqwest::Client::new();

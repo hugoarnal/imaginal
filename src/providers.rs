@@ -70,8 +70,9 @@ pub enum Platforms {
     LastFM,
 }
 
-pub trait PlatformParameters {
-    fn get_spotify_access_token(&self) -> String;
+#[derive(Clone, Default)]
+pub struct PlatformParameters {
+    spotify_access_token: Option<String>,
 }
 
 // this is for future platforms implementation, might remove?
@@ -97,7 +98,7 @@ impl Platforms {
 
     async fn currently_playing(
         &self,
-        parameters: Option<impl PlatformParameters>,
+        parameters: Option<PlatformParameters>,
     ) -> Result<Option<Song>, Error> {
         match *self {
             Platforms::Spotify => spotify::currently_playing(parameters).await,
@@ -111,7 +112,7 @@ impl Platforms {
 
 pub struct Provider {
     platform: Platforms,
-    spotify_params: Option<spotify::Parameters>,
+    params: Option<PlatformParameters>,
 }
 
 impl Provider {
@@ -120,7 +121,7 @@ impl Provider {
         log::info!("Using provider {:?}", platform);
         Self {
             platform: platform,
-            spotify_params: None,
+            params: None,
         }
     }
 
@@ -131,7 +132,9 @@ impl Provider {
             Platforms::Spotify => {
                 match spotify::connect().await {
                     Ok(access_token) => {
-                        self.spotify_params = Some(spotify::Parameters { access_token });
+                        let mut params = PlatformParameters::default();
+                        params.spotify_access_token = Some(access_token.clone());
+                        self.params = Some(params);
                         success = true;
                     }
                     Err(_) => {
@@ -148,9 +151,9 @@ impl Provider {
         }
     }
 
-    fn retrieve_params(&self) -> Option<impl PlatformParameters> {
+    fn retrieve_params(&self) -> Option<PlatformParameters> {
         match self.platform {
-            Platforms::Spotify => self.spotify_params.clone(),
+            Platforms::Spotify => self.params.clone(),
             Platforms::LastFM => None,
         }
     }
