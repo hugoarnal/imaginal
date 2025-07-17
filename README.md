@@ -1,6 +1,6 @@
 # imaginal
 
-[Multi-platform](#supported-platforms) currently listening display
+[Multi-platform](#supported-platforms) currently listening music display
 
 > Currently in development, wanting to expand to something more complex than terminal-based display 👀
 
