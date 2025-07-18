@@ -217,9 +217,11 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
 
     server.await?;
 
-    // TODO: correct error handling
     if state != *query_state.state.lock().unwrap() {
-        panic!("Incorrect given state");
+        return Err(providers::Error {
+            error_type: providers::ErrorType::Unknown,
+            message: "Different state between authorization URL and callback".to_string()
+        });
     }
     let mut params = PlatformParameters::default();
     let accces_token =
