@@ -161,8 +161,9 @@ impl Provider {
                 self.params = params;
                 success = true;
             }
-            Err(_) => {
-                panic!("Error occured during Spotify connection");
+            Err(err) => {
+                log::error!("Error occured during {:?} connection", self.platform);
+                panic!("{}", err);
             }
         }
         if success {
