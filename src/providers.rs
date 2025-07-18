@@ -69,7 +69,7 @@ impl Display for Error {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum Platforms {
+pub enum Platform {
     Spotify,
     LastFM,
 }
@@ -82,10 +82,10 @@ pub struct PlatformParameters {
 
 // this is for future platforms implementation, might remove?
 #[allow(unreachable_patterns)]
-impl Platforms {
+impl Platform {
     async fn connect(&self) -> Result<Option<PlatformParameters>, Error> {
         match *self {
-            Platforms::Spotify => spotify::connect().await,
+            Platform::Spotify => spotify::connect().await,
             _ => {
                 log::warn!("No login implementation detected for {:?}", self);
                 Ok(None)
@@ -98,7 +98,7 @@ impl Platforms {
         parameters: Option<PlatformParameters>,
     ) -> Result<Option<PlatformParameters>, Error> {
         match *self {
-            Platforms::Spotify => spotify::refresh(parameters.clone()).await,
+            Platform::Spotify => spotify::refresh(parameters.clone()).await,
             _ => {
                 log::warn!("No refresh implementation detected for {:?}", self);
                 Ok(None)
@@ -108,8 +108,8 @@ impl Platforms {
 
     fn verify(&self) -> bool {
         match *self {
-            Platforms::Spotify => spotify::verify(true),
-            Platforms::LastFM => lastfm::verify(true),
+            Platform::Spotify => spotify::verify(true),
+            Platform::LastFM => lastfm::verify(true),
             _ => {
                 todo!("This platform hasn't been implemented")
             }
@@ -118,8 +118,8 @@ impl Platforms {
 
     fn ratelimit(&self) -> u64 {
         match *self {
-            Platforms::Spotify => 2,
-            Platforms::LastFM => 2,
+            Platform::Spotify => 2,
+            Platform::LastFM => 2,
             _ => 2,
         }
     }
@@ -129,8 +129,8 @@ impl Platforms {
         parameters: Option<PlatformParameters>,
     ) -> Result<Option<Song>, Error> {
         match *self {
-            Platforms::Spotify => spotify::currently_playing(parameters).await,
-            Platforms::LastFM => lastfm::currently_playing().await,
+            Platform::Spotify => spotify::currently_playing(parameters).await,
+            Platform::LastFM => lastfm::currently_playing().await,
             _ => {
                 todo!("This platform hasn't been implemented")
             }
@@ -139,12 +139,12 @@ impl Platforms {
 }
 
 pub struct Provider {
-    platform: Platforms,
+    platform: Platform,
     params: Option<PlatformParameters>,
 }
 
 impl Provider {
-    pub fn new(platform: Platforms) -> Self {
+    pub fn new(platform: Platform) -> Self {
         platform.verify();
         log::info!("Using provider {:?}", platform);
         Self {
@@ -190,8 +190,8 @@ impl Provider {
 
     fn retrieve_params(&self) -> Option<PlatformParameters> {
         match self.platform {
-            Platforms::Spotify => self.params.clone(),
-            Platforms::LastFM => None,
+            Platform::Spotify => self.params.clone(),
+            Platform::LastFM => None,
         }
     }
 
@@ -234,32 +234,32 @@ impl Provider {
     }
 }
 
-pub fn new(platform: Platforms) -> Provider {
+pub fn new(platform: Platform) -> Provider {
     Provider::new(platform)
 }
 
-fn get_platform_from_env() -> Option<Platforms> {
+fn get_platform_from_env() -> Option<Platform> {
     let platform_env = env::var(PRIORITY_PLATFORM).unwrap().to_lowercase();
 
     if platform_env.contains("lastfm") {
-        return Some(Platforms::LastFM);
+        return Some(Platform::LastFM);
     }
     if platform_env.contains("spotify") {
-        return Some(Platforms::Spotify);
+        return Some(Platform::Spotify);
     }
     None
 }
 
-pub fn detect_platform() -> Option<Platforms> {
+pub fn detect_platform() -> Option<Platform> {
     log::debug!("Trying to detect platform using env");
     if check_env_existence(PRIORITY_PLATFORM, false) {
         return get_platform_from_env();
     }
     if lastfm::verify(false) {
-        return Some(Platforms::LastFM);
+        return Some(Platform::LastFM);
     }
     if spotify::verify(false) {
-        return Some(Platforms::Spotify);
+        return Some(Platform::Spotify);
     }
     None
 }
