@@ -168,19 +168,19 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
-pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
-    let creds = database::spotify::get_creds();
-
-    // TODO: host a /login endpoint like in the official post so that a DE is not needed
-    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
-
+fn get_server_port() -> u16 {
     let mut port = DEFAULT_PORT;
 
     if check_env_existence(PORT_ENV, false) {
         port = env::var(PORT_ENV).unwrap().parse().unwrap();
     }
+    port
+}
 
-    let redirect_uri = format!("http://{}:{}/callback", IP, port);
+async fn login_server(redirect_uri: String) -> Result<actix_web::web::Data<QueryState>, providers::Error>{
+    // TODO: host a /login endpoint like in the official post so that a DE is not needed
+    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
+
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
 
@@ -210,7 +210,7 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
         }
     })
     .disable_signals()
-    .bind((IP, port))?
+    .bind((IP, get_server_port()))?
     .workers(1)
     .run();
 
@@ -224,11 +224,26 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
             message: "Different state between authorization URL and callback".to_string()
         });
     }
+    Ok(query_state)
+}
+
+pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
+    let creds: AccessTokenJson;
     let mut params = PlatformParameters::default();
-    let accces_token =
-        get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
-    params.spotify_access_token = Some(accces_token.access_token);
-    params.spotify_refresh_token = Some(accces_token.refresh_token);
+
+    match database::spotify::get_creds() {
+        Some(db_creds) => {
+            creds = db_creds;
+        }
+        None => {
+            let redirect_uri = format!("http://{}:{}/callback", IP, get_server_port());
+            let query_state = login_server(redirect_uri.clone()).await?;
+            creds =
+                get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
+        }
+    }
+    params.spotify_access_token = Some(creds.access_token);
+    params.spotify_refresh_token = Some(creds.refresh_token);
     Ok(Some(params))
 }
 
