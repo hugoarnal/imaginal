@@ -4,14 +4,16 @@ use actix_web::{
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::header::HeaderMap;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::{
     env,
     sync::{Arc, Mutex},
 };
 
 use crate::{
-    database, providers::{self, PlatformParameters, Song}, utils::check_env_existence
+    database,
+    providers::{self, PlatformParameters, Song},
+    utils::check_env_existence,
 };
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
@@ -177,7 +179,9 @@ fn get_server_port() -> u16 {
     port
 }
 
-async fn login_server(redirect_uri: String) -> Result<actix_web::web::Data<QueryState>, providers::Error>{
+async fn login_server(
+    redirect_uri: String,
+) -> Result<actix_web::web::Data<QueryState>, providers::Error> {
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 
@@ -221,7 +225,7 @@ async fn login_server(redirect_uri: String) -> Result<actix_web::web::Data<Query
     if state != *query_state.state.lock().unwrap() {
         return Err(providers::Error {
             error_type: providers::ErrorType::Unknown,
-            message: "Different state between authorization URL and callback".to_string()
+            message: "Different state between authorization URL and callback".to_string(),
         });
     }
     Ok(query_state)
