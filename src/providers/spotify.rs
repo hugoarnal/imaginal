@@ -4,15 +4,14 @@ use actix_web::{
 use base64::{Engine, prelude::BASE64_STANDARD};
 use rand::distr::{Alphanumeric, SampleString};
 use reqwest::header::HeaderMap;
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 use std::{
     env,
     sync::{Arc, Mutex},
 };
 
 use crate::{
-    providers::{self, PlatformParameters, Song},
-    utils::check_env_existence,
+    database, providers::{self, PlatformParameters, Song}, utils::check_env_existence
 };
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
@@ -24,8 +23,8 @@ const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 9761;
 
-#[derive(Deserialize)]
-struct AccessTokenJson {
+#[derive(Serialize, Deserialize)]
+pub struct AccessTokenJson {
     access_token: String,
     refresh_token: String,
 }
@@ -170,6 +169,8 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
 }
 
 pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
+    let creds = database::spotify::get_creds();
+
     // TODO: host a /login endpoint like in the official post so that a DE is not needed
     // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
 

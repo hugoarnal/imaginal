@@ -7,7 +7,7 @@ use std::{
 use crate::utils::check_env_existence;
 
 mod lastfm;
-mod spotify;
+pub mod spotify;
 
 const PRIORITY_PLATFORM: &str = "PRIORITY_PLATFORM";
 const RATELIMIT_WAIT_SECS: u64 = 60;
