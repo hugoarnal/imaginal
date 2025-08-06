@@ -18,6 +18,10 @@ fn init_folder() -> bool {
     }
 }
 
+fn get_full_path(file_name: &str) -> String {
+    format!("{}/{}", DATABASE_FOLDER, file_name)
+}
+
 pub mod spotify {
     use std::{
         fs::{self, File},
@@ -26,7 +30,7 @@ pub mod spotify {
     };
 
     use crate::{
-        database::{DATABASE_FOLDER, init_folder},
+        database::{get_full_path, init_folder},
         providers::spotify::AccessTokenJson,
     };
 
@@ -38,7 +42,7 @@ pub mod spotify {
             return None;
         }
 
-        let full_path = format!("{}/{}", DATABASE_FOLDER, ACCESS_TOKEN_FILE);
+        let full_path = get_full_path(ACCESS_TOKEN_FILE);
         let path = Path::new(&full_path);
 
         if path.exists() {
@@ -70,8 +74,7 @@ pub mod spotify {
             }
         };
 
-        // TODO: simplify this redundancy
-        let full_path = format!("{}/{}", DATABASE_FOLDER, ACCESS_TOKEN_FILE);
+        let full_path = get_full_path(ACCESS_TOKEN_FILE);
         let path = Path::new(&full_path);
 
         let file = File::create(path);
