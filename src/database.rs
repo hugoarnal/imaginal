@@ -34,6 +34,7 @@ pub mod spotify {
 
     pub fn get_creds() -> Option<AccessTokenJson> {
         if !init_folder() {
+            log::error!("Couldn't create or enter `database` folder");
             return None;
         }
 
@@ -43,6 +44,7 @@ pub mod spotify {
         if path.exists() {
             let content = fs::read_to_string(path);
             if content.is_err() {
+                log::error!("Couldn't read {}", full_path);
                 return None;
             }
             match serde_json::from_str::<AccessTokenJson>(content.unwrap().as_str()) {
@@ -50,6 +52,7 @@ pub mod spotify {
                     return Some(content);
                 }
                 Err(_) => {
+                    log::error!("Couldn't deserialize {}", full_path);
                     return None;
                 }
             }
@@ -76,12 +79,15 @@ pub mod spotify {
         if file.is_ok() {
             output = file.unwrap();
         } else {
-            log::error!("Couldn't open file");
+            log::error!("Couldn't open {}", full_path);
             return false;
         }
         match write!(output, "{}", content) {
             Ok(_) => true,
-            Err(_) => false,
+            Err(_) => {
+                log::error!("Couldn't write to {}", full_path);
+                false
+            },
         }
     }
 }
