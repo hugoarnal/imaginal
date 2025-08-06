@@ -19,7 +19,11 @@ fn init_folder() -> bool {
 }
 
 pub mod spotify {
-    use std::{fs, path::Path};
+    use std::{
+        fs::{self, File},
+        io::Write,
+        path::Path,
+    };
 
     use crate::{
         database::{DATABASE_FOLDER, init_folder},
@@ -49,13 +53,35 @@ pub mod spotify {
                     return None;
                 }
             }
-        } else {
-            return None;
         }
+        None
     }
 
     pub fn set_creds(creds: AccessTokenJson) -> bool {
-        serde_json::to_string(&creds).unwrap();
-        false
+        let content: String;
+        match serde_json::to_string(&creds) {
+            Ok(string) => content = string,
+            Err(_) => {
+                log::error!("Couldn't serialize credentials");
+                return false;
+            }
+        };
+
+        // TODO: simplify this redundancy
+        let full_path = format!("{}/{}", DATABASE_FOLDER, ACCESS_TOKEN_FILE);
+        let path = Path::new(&full_path);
+
+        let file = File::create(path);
+        let mut output: File;
+        if file.is_ok() {
+            output = file.unwrap();
+        } else {
+            log::error!("Couldn't open file");
+            return false;
+        }
+        match write!(output, "{}", content) {
+            Ok(_) => true,
+            Err(_) => false,
+        }
     }
 }

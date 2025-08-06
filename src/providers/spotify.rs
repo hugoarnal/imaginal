@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    database,
+    database::{self, spotify},
     providers::{self, PlatformParameters, Song},
     utils::check_env_existence,
 };
@@ -25,7 +25,7 @@ const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 9761;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct AccessTokenJson {
     access_token: String,
     refresh_token: String,
@@ -244,6 +244,7 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
             let query_state = login_server(redirect_uri.clone()).await?;
             creds =
                 get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
+            spotify::set_creds(creds.clone());
         }
     }
     params.spotify_access_token = Some(creds.access_token);
