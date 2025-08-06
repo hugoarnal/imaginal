@@ -37,9 +37,11 @@ pub mod spotify {
         let path = Path::new(&full_path);
 
         if path.exists() {
-            // TODO: add file contents
-            let content = "";
-            match serde_json::from_str::<AccessTokenJson>(content) {
+            let content = fs::read_to_string(path);
+            if content.is_err() {
+                return None;
+            }
+            match serde_json::from_str::<AccessTokenJson>(content.unwrap().as_str()) {
                 Ok(content) => {
                     return Some(content);
                 }
