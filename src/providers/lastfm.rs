@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::env;
+use std::{env, process};
 
 use crate::providers::{self, Song};
 use crate::utils::check_env_existence;
@@ -73,10 +73,12 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
 
         match results.error {
             6 => {
-                panic!("Unknown user")
+                log::error!("Unknown user");
+                process::exit(1);
             }
             10 => {
-                panic!("Incorrect API Key")
+                log::error!("Incorrect API Key");
+                process::exit(1);
             }
             29 => {
                 error_type = providers::ErrorType::Ratelimit;

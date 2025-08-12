@@ -80,8 +80,6 @@ pub struct PlatformParameters {
     spotify_refresh_token: Option<String>,
 }
 
-// this is for future platforms implementation, might remove?
-#[allow(unreachable_patterns)]
 impl Platform {
     async fn connect(&self) -> Result<Option<PlatformParameters>, Error> {
         match *self {
@@ -110,9 +108,6 @@ impl Platform {
         match *self {
             Platform::Spotify => spotify::verify(true),
             Platform::LastFM => lastfm::verify(true),
-            _ => {
-                todo!("This platform hasn't been implemented")
-            }
         }
     }
 
@@ -120,7 +115,6 @@ impl Platform {
         match *self {
             Platform::Spotify => 2,
             Platform::LastFM => 2,
-            _ => 2,
         }
     }
 
@@ -131,9 +125,6 @@ impl Platform {
         match *self {
             Platform::Spotify => spotify::currently_playing(parameters).await,
             Platform::LastFM => lastfm::currently_playing().await,
-            _ => {
-                todo!("This platform hasn't been implemented")
-            }
         }
     }
 }
@@ -154,20 +145,15 @@ impl Provider {
     }
 
     pub async fn connect(&mut self) {
-        let success: bool;
-
         match self.platform.connect().await {
             Ok(params) => {
                 self.params = params;
-                success = true;
+                log::debug!("Successfully connected to {:?}", self.platform);
             }
             Err(err) => {
                 log::error!("Error occured during {:?} connection", self.platform);
                 panic!("{}", err);
             }
-        }
-        if success {
-            log::debug!("Successfully connected to {:?}", self.platform);
         }
     }
 
@@ -176,12 +162,10 @@ impl Provider {
             Ok(params) => {
                 self.params = params;
                 log::info!("Successfully connected to {:?}", self.platform);
-                true
             }
             Err(err) => {
                 log::error!("Couldn't refresh access_token using refresh_token");
                 log::debug!("{}", err.message);
-                false
             }
         };
     }
@@ -209,7 +193,14 @@ impl Provider {
                 };
             }
             Err(err) => {
-                log::error!("{}", err);
+                match err.error_type {
+                    ErrorType::ExpiredToken => {
+                        log::info!("{}", err)
+                    }
+                    _ => {
+                        log::error!("{}", err)
+                    }
+                };
                 match err.error_type {
                     ErrorType::ExpiredToken => {
                         self.refresh().await;

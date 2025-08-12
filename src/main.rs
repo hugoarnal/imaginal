@@ -2,6 +2,8 @@ mod database;
 mod providers;
 mod utils;
 
+use std::process;
+
 use dotenv::dotenv;
 use log;
 
@@ -17,7 +19,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         Some(p) => {
             log::debug!("Found platform {:?}", p.clone())
         }
-        None => panic!("No platforms detected"),
+        None => {
+            log::error!("No platforms detected");
+            process::exit(1);
+        }
     }
 
     let mut provider = providers::new(platform.unwrap());

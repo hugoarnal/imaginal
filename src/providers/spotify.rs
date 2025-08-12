@@ -6,7 +6,7 @@ use rand::distr::{Alphanumeric, SampleString};
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 use std::{
-    env,
+    env, process,
     sync::{Arc, Mutex},
 };
 
@@ -81,8 +81,15 @@ async fn get_access_token(
 
     let status_code = resp.status();
     if status_code != reqwest::StatusCode::OK {
-        // TODO: Transform this panic into log::error once `/login` is implemented
-        panic!("Found status code {} instead of 200", status_code)
+        log::error!(
+            "Found status code {} instead of {}",
+            status_code,
+            reqwest::StatusCode::OK
+        );
+        return Err(providers::Error {
+            error_type: providers::ErrorType::Unknown,
+            message: resp.text().await?,
+        });
     }
 
     let json = resp.json::<AccessTokenJson>().await?;
@@ -209,7 +216,8 @@ async fn login_server(
     match open::that(url) {
         Ok(_) => {}
         Err(_) => {
-            panic!("Couldn't open Spotify connection link");
+            log::error!("Couldn't open Spotify connection link");
+            process::exit(1);
         }
     };
 
@@ -319,7 +327,7 @@ pub async fn currently_playing(
     parameters: Option<PlatformParameters>,
 ) -> Result<Option<Song>, providers::Error> {
     if parameters.is_none() {
-        panic!("No access_token given");
+        panic!("Unexpected, no parameters found");
     }
 
     let mut headers = HeaderMap::new();

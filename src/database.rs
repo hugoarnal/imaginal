@@ -24,7 +24,10 @@ fn get_full_path(file_name: &str) -> String {
 
 pub mod spotify {
     use std::{
-        fs::{self, File}, io::Write, os::unix::fs::PermissionsExt, path::Path
+        fs::{self, File},
+        io::Write,
+        os::unix::fs::PermissionsExt,
+        path::Path,
     };
 
     use crate::{
@@ -44,12 +47,14 @@ pub mod spotify {
         let path = Path::new(&full_path);
 
         if path.exists() {
-            let content = fs::read_to_string(path);
-            if content.is_err() {
-                log::error!("Couldn't read {}", full_path);
-                return None;
-            }
-            match serde_json::from_str::<AccessTokenJson>(content.unwrap().as_str()) {
+            let content = match fs::read_to_string(path) {
+                Ok(c) => c,
+                Err(_) => {
+                    log::error!("Couldn't read {}", full_path);
+                    return None;
+                }
+            };
+            match serde_json::from_str::<AccessTokenJson>(content.as_str()) {
                 Ok(content) => {
                     return Some(content);
                 }
@@ -63,9 +68,8 @@ pub mod spotify {
     }
 
     pub fn set_creds(creds: AccessTokenJson) -> bool {
-        let content: String;
-        match serde_json::to_string(&creds) {
-            Ok(string) => content = string,
+        let content: String = match serde_json::to_string(&creds) {
+            Ok(string) => string,
             Err(_) => {
                 log::error!("Couldn't serialize credentials");
                 return false;
@@ -76,22 +80,22 @@ pub mod spotify {
         let path = Path::new(&full_path);
 
         let file = File::create(path);
-        let mut output: File;
-        if file.is_ok() {
-            output = file.unwrap();
-        } else {
-            log::error!("Couldn't open {}", full_path);
-            return false;
-        }
+        let mut output: File = match file {
+            Ok(c) => c,
+            Err(_) => {
+                log::error!("Couldn't open {}", full_path);
+                return false;
+            }
+        };
         let mut permissions = output.metadata().unwrap().permissions();
         permissions.set_mode(0o666);
 
         match std::fs::set_permissions(full_path.clone(), permissions) {
-            Ok(_) => {},
+            Ok(_) => {}
             Err(_) => {
                 log::error!("Couldn't change permissions of {}", full_path);
                 return false;
-            },
+            }
         };
 
         match write!(output, "{}", content) {
@@ -99,7 +103,7 @@ pub mod spotify {
             Err(_) => {
                 log::error!("Couldn't write to {}", full_path);
                 false
-            },
+            }
         }
     }
 }
