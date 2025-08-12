@@ -11,7 +11,9 @@
 
 ## Build
 
-Only for UNIX systems
+> [!WARNING]
+> Imaginal is built to work only on UNIX systems for now.
+> Unknown if it works on other architectures than x86_64
 
 #### Prerequisites
 - Rust (w/ Cargo)
