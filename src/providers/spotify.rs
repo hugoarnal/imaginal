@@ -11,7 +11,7 @@ use std::{
 };
 
 use crate::{
-    database::{self, spotify},
+    database,
     providers::{self, PlatformParameters, Song},
     utils::check_env_existence,
 };
@@ -31,17 +31,18 @@ pub struct AccessTokenJson {
     refresh_token: String,
 }
 
+// TODO: not a huge fan of this solution but it works for now lol
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RefreshTokenJson {
+    access_token: String,
+}
+
 pub fn verify(panic: bool) -> bool {
     check_env_existence(CLIENT_ID_ENV, panic);
     check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
-async fn get_access_token(
-    code: String,
-    redirect_uri: String,
-) -> Result<AccessTokenJson, providers::Error> {
-    let mut headers = HeaderMap::new();
-
+fn insert_authorization_header(headers: &mut HeaderMap) {
     let client_id = env::var(CLIENT_ID_ENV).unwrap();
     let client_secret = env::var(CLIENT_SECRET_ENV).unwrap();
     let encrypted_client_settings = format!("{}:{}", client_id, client_secret);
@@ -55,6 +56,15 @@ async fn get_access_token(
         .parse()
         .unwrap(),
     );
+}
+
+async fn get_access_token(
+    code: String,
+    redirect_uri: String,
+) -> Result<AccessTokenJson, providers::Error> {
+    let mut headers = HeaderMap::new();
+
+    insert_authorization_header(&mut headers);
 
     log::debug!("Obtaining access token");
     let resp = reqwest::Client::new()
@@ -80,7 +90,9 @@ async fn get_access_token(
 }
 
 async fn get_refresh_token(refresh_token: String) -> Result<AccessTokenJson, providers::Error> {
-    let client_id = env::var(CLIENT_ID_ENV).unwrap();
+    let mut headers = HeaderMap::new();
+
+    insert_authorization_header(&mut headers);
 
     log::debug!("Refreshing token");
     let resp = reqwest::Client::new()
@@ -88,8 +100,8 @@ async fn get_refresh_token(refresh_token: String) -> Result<AccessTokenJson, pro
         .form(&[
             ("grant_type", "refresh_token"),
             ("refresh_token", refresh_token.as_str()),
-            ("client_id", client_id.as_str()),
         ])
+        .headers(headers)
         .send()
         .await
         .expect("send");
@@ -103,8 +115,13 @@ async fn get_refresh_token(refresh_token: String) -> Result<AccessTokenJson, pro
         });
     }
 
-    let json = resp.json::<AccessTokenJson>().await?;
-    Ok(json)
+    let json = resp.json::<RefreshTokenJson>().await?;
+    let creds = AccessTokenJson {
+        access_token: json.access_token,
+        refresh_token: refresh_token,
+    };
+    database::spotify::set_creds(creds.clone());
+    Ok(creds)
 }
 
 pub async fn refresh(
@@ -244,7 +261,7 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
             let query_state = login_server(redirect_uri.clone()).await?;
             creds =
                 get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
-            spotify::set_creds(creds.clone());
+            database::spotify::set_creds(creds.clone());
         }
     }
     params.spotify_access_token = Some(creds.access_token);

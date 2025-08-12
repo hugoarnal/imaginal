@@ -172,20 +172,18 @@ impl Provider {
     }
 
     pub async fn refresh(&mut self) {
-        let success: bool;
-
         match self.platform.refresh(self.params.clone()).await {
             Ok(params) => {
                 self.params = params;
-                success = true;
+                log::info!("Successfully connected to {:?}", self.platform);
+                true
             }
-            Err(_) => {
-                panic!("Error occured during Spotify connection");
+            Err(err) => {
+                log::error!("Couldn't refresh access_token using refresh_token");
+                log::debug!("{}", err.message);
+                false
             }
-        }
-        if success {
-            log::debug!("Successfully connected to {:?}", self.platform);
-        }
+        };
     }
 
     fn retrieve_params(&self) -> Option<PlatformParameters> {
