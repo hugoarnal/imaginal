@@ -11,6 +11,8 @@
 
 ## Build
 
+Only for UNIX systems
+
 #### Prerequisites
 - Rust (w/ Cargo)
 

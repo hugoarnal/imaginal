@@ -24,9 +24,7 @@ fn get_full_path(file_name: &str) -> String {
 
 pub mod spotify {
     use std::{
-        fs::{self, File},
-        io::Write,
-        path::Path,
+        fs::{self, File}, io::Write, os::unix::fs::PermissionsExt, path::Path
     };
 
     use crate::{
@@ -85,6 +83,17 @@ pub mod spotify {
             log::error!("Couldn't open {}", full_path);
             return false;
         }
+        let mut permissions = output.metadata().unwrap().permissions();
+        permissions.set_mode(0o666);
+
+        match std::fs::set_permissions(full_path.clone(), permissions) {
+            Ok(_) => {},
+            Err(_) => {
+                log::error!("Couldn't change permissions of {}", full_path);
+                return false;
+            },
+        };
+
         match write!(output, "{}", content) {
             Ok(_) => true,
             Err(_) => {
