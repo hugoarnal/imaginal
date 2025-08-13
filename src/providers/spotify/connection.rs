@@ -201,20 +201,8 @@ fn get_server_port() -> u16 {
 async fn login_server(
     redirect_uri: String,
 ) -> Result<actix_web::web::Data<QueryState>, providers::Error> {
-    // TODO: host a /login endpoint like in the official post so that a DE is not needed
-    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
-
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
-
-    log::debug!("Opening {} in client's default browser", url);
-    match open::that(url) {
-        Ok(_) => {}
-        Err(_) => {
-            log::error!("Couldn't open Spotify connection link");
-            process::exit(1);
-        }
-    };
 
     // https://github.com/actix/examples/blob/49ea95e9e69e64f5c14f4c43692e4e7916218d6d/shutdown-server/src/main.rs
     let stop_handle = web::Data::new(StopHandle::default());
@@ -229,6 +217,7 @@ async fn login_server(
             App::new()
                 .app_data(query_state.clone())
                 .app_data(stop_handle.clone())
+                .service(web::redirect("/login", url.clone()))
                 .service(callback)
                 .wrap(middleware::Logger::default())
         }
@@ -260,6 +249,8 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
             creds = db_creds;
         }
         None => {
+            // log::error!("Couldn't find Spotify credentials, please use `imaginal connect` and try again.");
+            // process::exit(1);
             let redirect_uri = format!("http://{}:{}/callback", IP, get_server_port());
             let query_state = login_server(redirect_uri.clone()).await?;
             creds =
