@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 actix-web = "4.11.0"
 base64 = "0.22.1"
+clap = { version = "4.5.45", features = ["cargo", "derive"] }
 dotenv = "0.15.0"
 env_logger = "0.11.8"
 log = "0.4.27"
