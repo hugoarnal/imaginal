@@ -83,7 +83,7 @@ pub struct PlatformParameters {
 impl Platform {
     async fn connect(&self) -> Result<Option<PlatformParameters>, Error> {
         match *self {
-            Platform::Spotify => spotify::connect().await,
+            Platform::Spotify => spotify::connection::connect().await,
             _ => {
                 log::warn!("No login implementation detected for {:?}", self);
                 Ok(None)
@@ -96,7 +96,7 @@ impl Platform {
         parameters: Option<PlatformParameters>,
     ) -> Result<Option<PlatformParameters>, Error> {
         match *self {
-            Platform::Spotify => spotify::refresh(parameters.clone()).await,
+            Platform::Spotify => spotify::connection::refresh(parameters.clone()).await,
             _ => {
                 log::warn!("No refresh implementation detected for {:?}", self);
                 Ok(None)
@@ -123,7 +123,7 @@ impl Platform {
         parameters: Option<PlatformParameters>,
     ) -> Result<Option<Song>, Error> {
         match *self {
-            Platform::Spotify => spotify::currently_playing(parameters).await,
+            Platform::Spotify => spotify::playing::currently_playing(parameters).await,
             Platform::LastFM => lastfm::currently_playing().await,
         }
     }

@@ -12,15 +12,15 @@ use std::{
 
 use crate::{
     database,
-    providers::{self, PlatformParameters, Song},
+    providers::{
+        self, PlatformParameters,
+        spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV},
+    },
     utils::check_env_existence,
 };
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
-const CURRENTLY_PLAYING_API_LINK: &str = "https://api.spotify.com/v1/me/player/currently-playing";
-const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
-const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 9761;
@@ -35,11 +35,6 @@ pub struct AccessTokenJson {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RefreshTokenJson {
     access_token: String,
-}
-
-pub fn verify(panic: bool) -> bool {
-    check_env_existence(CLIENT_ID_ENV, panic);
-    check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
 fn insert_authorization_header(headers: &mut HeaderMap) {
@@ -298,94 +293,4 @@ impl StopHandle {
             .stop(graceful)
             .await
     }
-}
-
-#[derive(Deserialize)]
-struct CurrentlyPlayingSchema {
-    is_playing: bool,
-    item: Item,
-}
-
-#[derive(Deserialize)]
-struct Item {
-    album: Album,
-    artists: Vec<Artist>,
-    name: String,
-}
-
-#[derive(Deserialize)]
-struct Album {
-    name: String,
-}
-
-#[derive(Deserialize)]
-struct Artist {
-    name: String,
-}
-
-pub async fn currently_playing(
-    parameters: Option<PlatformParameters>,
-) -> Result<Option<Song>, providers::Error> {
-    if parameters.is_none() {
-        panic!("Unexpected, no parameters found");
-    }
-
-    let mut headers = HeaderMap::new();
-
-    headers.insert(
-        reqwest::header::AUTHORIZATION,
-        format!(
-            "Bearer {}",
-            parameters.unwrap().spotify_access_token.unwrap()
-        )
-        .parse()
-        .unwrap(),
-    );
-
-    let client = reqwest::Client::new();
-    let response = client
-        .get(CURRENTLY_PLAYING_API_LINK)
-        .headers(headers)
-        .send()
-        .await?;
-
-    match response.status() {
-        reqwest::StatusCode::NO_CONTENT => {
-            return Ok(None);
-        }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            return Err(providers::Error {
-                error_type: providers::ErrorType::ExpiredToken,
-                message: "Current token is expired".to_string(),
-            });
-        }
-        reqwest::StatusCode::TOO_MANY_REQUESTS => {
-            return Err(providers::Error {
-                error_type: providers::ErrorType::Ratelimit,
-                message: "Too many requests".to_string(),
-            });
-        }
-        _ => {}
-    }
-
-    let results = response.json::<CurrentlyPlayingSchema>().await?;
-
-    let artist_name: String;
-    match results.item.artists.into_iter().next() {
-        Some(artist) => {
-            artist_name = artist.name;
-        }
-        None => {
-            artist_name = String::from("None");
-        }
-    }
-
-    let currently_playing: Option<Song> = Some(Song {
-        playing: results.is_playing,
-        title: results.item.name,
-        artist: artist_name,
-        album: results.item.album.name,
-    });
-
-    Ok(currently_playing)
 }

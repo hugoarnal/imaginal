@@ -32,7 +32,7 @@ pub mod spotify {
 
     use crate::{
         database::{get_full_path, init_folder},
-        providers::spotify::AccessTokenJson,
+        providers::spotify::connection::AccessTokenJson,
     };
 
     const ACCESS_TOKEN_FILE: &str = "spotify_access_token.json";
