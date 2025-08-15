@@ -105,9 +105,7 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
                         false
                     }
                 }
-                _ => {
-                    false
-                }
+                _ => false,
             };
 
             Some(Song {

@@ -231,7 +231,11 @@ pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
     .run();
 
     stop_handle.register(server.handle());
-    log::warn!("Go to http://{}:{}/login on your browser", IP, get_server_port());
+    log::warn!(
+        "Go to http://{}:{}/login on your browser",
+        IP,
+        get_server_port()
+    );
 
     server.await?;
 

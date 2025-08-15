@@ -133,7 +133,7 @@ impl Platform {
     ) -> Result<Option<spotify::connection::AccessTokenJson>, Error> {
         match *self {
             Platform::Spotify => Ok(Some(spotify::connection::login_server().await?)),
-            _ => Ok(None)
+            _ => Ok(None),
         }
     }
 }
