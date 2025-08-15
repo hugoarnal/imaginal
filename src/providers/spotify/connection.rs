@@ -12,15 +12,15 @@ use std::{
 
 use crate::{
     database,
-    providers::{self, PlatformParameters, Song},
+    providers::{
+        self, PlatformParameters,
+        spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV},
+    },
     utils::check_env_existence,
 };
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
-const CURRENTLY_PLAYING_API_LINK: &str = "https://api.spotify.com/v1/me/player/currently-playing";
-const CLIENT_ID_ENV: &str = "SPOTIFY_CLIENT_ID";
-const CLIENT_SECRET_ENV: &str = "SPOTIFY_CLIENT_SECRET";
 const PORT_ENV: &str = "SPOTIFY_PORT";
 const IP: &str = "127.0.0.1";
 const DEFAULT_PORT: u16 = 9761;
@@ -35,11 +35,6 @@ pub struct AccessTokenJson {
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RefreshTokenJson {
     access_token: String,
-}
-
-pub fn verify(panic: bool) -> bool {
-    check_env_existence(CLIENT_ID_ENV, panic);
-    check_env_existence(CLIENT_SECRET_ENV, panic)
 }
 
 fn insert_authorization_header(headers: &mut HeaderMap) {
@@ -194,6 +189,10 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
+pub fn get_redirect_uri() -> String {
+    format!("http://{}:{}/callback", IP, get_server_port())
+}
+
 fn get_server_port() -> u16 {
     let mut port = DEFAULT_PORT;
 
@@ -203,23 +202,10 @@ fn get_server_port() -> u16 {
     port
 }
 
-async fn login_server(
-    redirect_uri: String,
-) -> Result<actix_web::web::Data<QueryState>, providers::Error> {
-    // TODO: host a /login endpoint like in the official post so that a DE is not needed
-    // https://developer.spotify.com/documentation/web-api/tutorials/code-flow
-
+pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
+    let redirect_uri = get_redirect_uri();
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
-
-    log::debug!("Opening {} in client's default browser", url);
-    match open::that(url) {
-        Ok(_) => {}
-        Err(_) => {
-            log::error!("Couldn't open Spotify connection link");
-            process::exit(1);
-        }
-    };
 
     // https://github.com/actix/examples/blob/49ea95e9e69e64f5c14f4c43692e4e7916218d6d/shutdown-server/src/main.rs
     let stop_handle = web::Data::new(StopHandle::default());
@@ -234,6 +220,7 @@ async fn login_server(
             App::new()
                 .app_data(query_state.clone())
                 .app_data(stop_handle.clone())
+                .service(web::redirect("/login", url.clone()))
                 .service(callback)
                 .wrap(middleware::Logger::default())
         }
@@ -244,6 +231,11 @@ async fn login_server(
     .run();
 
     stop_handle.register(server.handle());
+    log::warn!(
+        "Go to http://{}:{}/login on your browser",
+        IP,
+        get_server_port()
+    );
 
     server.await?;
 
@@ -253,25 +245,23 @@ async fn login_server(
             message: "Different state between authorization URL and callback".to_string(),
         });
     }
-    Ok(query_state)
+
+    let creds = get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
+    Ok(creds)
 }
 
 pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
-    let creds: AccessTokenJson;
     let mut params = PlatformParameters::default();
-
-    match database::spotify::get_creds() {
-        Some(db_creds) => {
-            creds = db_creds;
-        }
+    let creds: AccessTokenJson = match database::spotify::get_creds() {
+        Some(db_creds) => db_creds,
         None => {
-            let redirect_uri = format!("http://{}:{}/callback", IP, get_server_port());
-            let query_state = login_server(redirect_uri.clone()).await?;
-            creds =
-                get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
-            database::spotify::set_creds(creds.clone());
+            log::error!(
+                "Couldn't find Spotify credentials, please use `imaginal connect` and try again."
+            );
+            process::exit(1);
         }
-    }
+    };
+
     params.spotify_access_token = Some(creds.access_token);
     params.spotify_refresh_token = Some(creds.refresh_token);
     Ok(Some(params))
@@ -298,94 +288,4 @@ impl StopHandle {
             .stop(graceful)
             .await
     }
-}
-
-#[derive(Deserialize)]
-struct CurrentlyPlayingSchema {
-    is_playing: bool,
-    item: Item,
-}
-
-#[derive(Deserialize)]
-struct Item {
-    album: Album,
-    artists: Vec<Artist>,
-    name: String,
-}
-
-#[derive(Deserialize)]
-struct Album {
-    name: String,
-}
-
-#[derive(Deserialize)]
-struct Artist {
-    name: String,
-}
-
-pub async fn currently_playing(
-    parameters: Option<PlatformParameters>,
-) -> Result<Option<Song>, providers::Error> {
-    if parameters.is_none() {
-        panic!("Unexpected, no parameters found");
-    }
-
-    let mut headers = HeaderMap::new();
-
-    headers.insert(
-        reqwest::header::AUTHORIZATION,
-        format!(
-            "Bearer {}",
-            parameters.unwrap().spotify_access_token.unwrap()
-        )
-        .parse()
-        .unwrap(),
-    );
-
-    let client = reqwest::Client::new();
-    let response = client
-        .get(CURRENTLY_PLAYING_API_LINK)
-        .headers(headers)
-        .send()
-        .await?;
-
-    match response.status() {
-        reqwest::StatusCode::NO_CONTENT => {
-            return Ok(None);
-        }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            return Err(providers::Error {
-                error_type: providers::ErrorType::ExpiredToken,
-                message: "Current token is expired".to_string(),
-            });
-        }
-        reqwest::StatusCode::TOO_MANY_REQUESTS => {
-            return Err(providers::Error {
-                error_type: providers::ErrorType::Ratelimit,
-                message: "Too many requests".to_string(),
-            });
-        }
-        _ => {}
-    }
-
-    let results = response.json::<CurrentlyPlayingSchema>().await?;
-
-    let artist_name: String;
-    match results.item.artists.into_iter().next() {
-        Some(artist) => {
-            artist_name = artist.name;
-        }
-        None => {
-            artist_name = String::from("None");
-        }
-    }
-
-    let currently_playing: Option<Song> = Some(Song {
-        playing: results.is_playing,
-        title: results.item.name,
-        artist: artist_name,
-        album: results.item.album.name,
-    });
-
-    Ok(currently_playing)
 }
