@@ -189,6 +189,10 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
+pub fn get_redirect_uri() -> String {
+    format!("http://{}:{}/callback", IP, get_server_port())
+}
+
 fn get_server_port() -> u16 {
     let mut port = DEFAULT_PORT;
 
@@ -198,9 +202,8 @@ fn get_server_port() -> u16 {
     port
 }
 
-async fn login_server(
-    redirect_uri: String,
-) -> Result<actix_web::web::Data<QueryState>, providers::Error> {
+pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
+    let redirect_uri = get_redirect_uri();
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
 
@@ -228,6 +231,7 @@ async fn login_server(
     .run();
 
     stop_handle.register(server.handle());
+    log::warn!("Go to http://{}:{}/login on your browser", IP, get_server_port());
 
     server.await?;
 
@@ -237,7 +241,9 @@ async fn login_server(
             message: "Different state between authorization URL and callback".to_string(),
         });
     }
-    Ok(query_state)
+
+    let creds = get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
+    Ok(creds)
 }
 
 pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
@@ -249,13 +255,10 @@ pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
             creds = db_creds;
         }
         None => {
-            // log::error!("Couldn't find Spotify credentials, please use `imaginal connect` and try again.");
-            // process::exit(1);
-            let redirect_uri = format!("http://{}:{}/callback", IP, get_server_port());
-            let query_state = login_server(redirect_uri.clone()).await?;
-            creds =
-                get_access_token(query_state.code.lock().unwrap().clone(), redirect_uri).await?;
-            database::spotify::set_creds(creds.clone());
+            log::error!(
+                "Couldn't find Spotify credentials, please use `imaginal connect` and try again."
+            );
+            process::exit(1);
         }
     }
     params.spotify_access_token = Some(creds.access_token);

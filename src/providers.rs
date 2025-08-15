@@ -127,6 +127,15 @@ impl Platform {
             Platform::LastFM => lastfm::currently_playing().await,
         }
     }
+
+    pub async fn login_server(
+        &self,
+    ) -> Result<Option<spotify::connection::AccessTokenJson>, Error> {
+        match *self {
+            Platform::Spotify => Ok(Some(spotify::connection::login_server().await?)),
+            _ => Ok(None)
+        }
+    }
 }
 
 pub struct Provider {

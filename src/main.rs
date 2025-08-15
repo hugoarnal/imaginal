@@ -19,25 +19,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
     );
     dotenv().ok();
-    let platform = providers::detect_platform();
-
-    match platform {
+    let platform = match providers::detect_platform() {
         Some(p) => {
-            log::debug!("Found platform {:?}", p.clone())
+            log::debug!("Found platform {:?}", p);
+            p
         }
         None => {
             log::error!("No platforms detected");
             process::exit(1);
         }
-    }
+    };
 
     match matches.subcommand() {
         Some(("connect", _)) => {
-            commands::connect::connect();
+            commands::connect::connect(platform).await;
             Ok(())
         }
         _ => {
-            let mut provider = providers::new(platform.unwrap());
+            let mut provider = providers::new(platform);
             provider.connect().await;
             loop {
                 provider.currently_playing().await;
