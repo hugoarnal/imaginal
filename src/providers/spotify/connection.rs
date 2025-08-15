@@ -251,20 +251,17 @@ pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
 }
 
 pub async fn connect() -> Result<Option<PlatformParameters>, providers::Error> {
-    let creds: AccessTokenJson;
     let mut params = PlatformParameters::default();
-
-    match database::spotify::get_creds() {
-        Some(db_creds) => {
-            creds = db_creds;
-        }
+    let creds: AccessTokenJson = match database::spotify::get_creds() {
+        Some(db_creds) => db_creds,
         None => {
             log::error!(
                 "Couldn't find Spotify credentials, please use `imaginal connect` and try again."
             );
             process::exit(1);
         }
-    }
+    };
+
     params.spotify_access_token = Some(creds.access_token);
     params.spotify_refresh_token = Some(creds.refresh_token);
     Ok(Some(params))

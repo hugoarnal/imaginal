@@ -75,15 +75,10 @@ pub async fn currently_playing(
 
     let results = response.json::<CurrentlyPlayingSchema>().await?;
 
-    let artist_name: String;
-    match results.item.artists.into_iter().next() {
-        Some(artist) => {
-            artist_name = artist.name;
-        }
-        None => {
-            artist_name = String::from("None");
-        }
-    }
+    let artist_name: String = match results.item.artists.into_iter().next() {
+        Some(artist) => artist.name,
+        None => String::from("Unknown artist"),
+    };
 
     let currently_playing: Option<Song> = Some(Song {
         playing: results.is_playing,
