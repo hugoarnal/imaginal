@@ -45,10 +45,10 @@ struct Error {
     error: u16,
 }
 
-pub fn verify(panic: bool) -> bool {
-    check_env_existence(API_KEY_ENV, panic);
-    check_env_existence(SHARED_SECRET_ENV, panic);
-    check_env_existence(USERNAME_ENV, panic)
+pub fn verify(exit: bool) -> bool {
+    check_env_existence(API_KEY_ENV, exit);
+    check_env_existence(SHARED_SECRET_ENV, exit);
+    check_env_existence(USERNAME_ENV, exit)
 }
 
 pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
