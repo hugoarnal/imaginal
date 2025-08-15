@@ -95,32 +95,32 @@ pub async fn currently_playing() -> Result<Option<Song>, providers::Error> {
 
     let results = response.json::<CurrentlyPlayingSchema>().await?;
 
-    let mut currently_playing: Option<Song> = None;
-
-    let first_element = results.recenttracks.track.into_iter().next();
-    match first_element {
+    let currently_playing = match results.recenttracks.track.into_iter().next() {
         Some(track) => {
-            let mut playing = false;
-
-            match track.attr {
+            let playing = match track.attr {
                 Some(track_attr) => {
                     if track_attr.nowplaying == "true" {
-                        playing = true;
+                        true
+                    } else {
+                        false
                     }
                 }
-                _ => {}
-            }
+                _ => {
+                    false
+                }
+            };
 
-            currently_playing = Some(Song {
+            Some(Song {
                 album: track.album.text,
                 playing: playing,
                 title: track.name,
                 artist: track.artist.text,
-            });
+            })
         }
         None => {
             log::debug!("No tracks detected at all");
+            None
         }
-    }
+    };
     Ok(currently_playing)
 }
