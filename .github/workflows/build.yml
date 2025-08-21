@@ -1,0 +1,19 @@
+name: Build
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: ["opened", "synchronize", "reopened"]
+  workflow_dispatch:
+
+jobs:
+  ubuntu-linux:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Build
+        run: cargo build --verbose
