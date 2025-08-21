@@ -4,16 +4,29 @@
 
 > Currently in development, wanting to expand to something more complex than terminal-based display 👀
 
-## Supported platforms
+## Supported music platforms
 
 - LastFM (recommended)
 - Spotify
 
-## Build
+## Support
 
 > [!WARNING]
+>
 > Imaginal is built to work only on UNIX systems for now.
-> Unknown if it works on other architectures than x86_64
+>
+> You could try on other platforms but I don't know if they work because they're not made with them in mind.
+
+- [x] Linux x86_64
+- [x] Linux arm64
+
+- [ ] MacOS x86_64
+- [ ] MacOS arm64
+
+- [ ] Windows x86_64
+- [ ] Windows arm64
+
+## Build
 
 #### Prerequisites
 - Rust (w/ Cargo)

@@ -1,13 +1,13 @@
 # imaginal Setup
 
 ## Platforms
-## Creating an API Key
+### Creating an API Key
 
-### LastFM
+#### LastFM
 
 Create an [API account here](https://www.last.fm/api/account/create) then replace the `LASTFM_*` keys in your `.env`.
 
-### Spotify
+#### Spotify
 
 > [!NOTE]
 > If you're using a different port than `9761`, change it in the `SPOTIFY_PORT` environment variable.
