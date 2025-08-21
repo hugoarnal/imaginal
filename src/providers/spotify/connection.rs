@@ -14,7 +14,8 @@ use crate::{
     commands::connect::get_server_info,
     database,
     providers::{
-        self, spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV}, PlatformParameters
+        self, PlatformParameters,
+        spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV},
     },
 };
 
@@ -222,11 +223,7 @@ pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
     .run();
 
     stop_handle.register(server.handle());
-    log::warn!(
-        "Go to http://{}:{}/login on your browser",
-        ip,
-        port
-    );
+    log::warn!("Go to http://{}:{}/login on your browser", ip, port);
 
     server.await?;
 

@@ -10,7 +10,7 @@ pub const DEFAULT_PORT: u16 = 9761;
 #[derive(Clone)]
 pub struct LoginServerInfo {
     pub ip: String,
-    pub port: u16
+    pub port: u16,
 }
 
 pub fn get_server_info() -> LoginServerInfo {
@@ -28,11 +28,7 @@ pub fn get_server_info() -> LoginServerInfo {
         DEFAULT_PORT
     };
 
-
-    LoginServerInfo {
-        ip: ip,
-        port: port
-    }
+    LoginServerInfo { ip: ip, port: port }
 }
 
 pub async fn connect(platform: Platform) {
