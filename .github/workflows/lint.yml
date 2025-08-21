@@ -1,0 +1,15 @@
+name: Lint
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    types: ["opened", "synchronize", "reopened"]
+  workflow_dispatch:
+
+jobs:
+    cargo-format:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Check out repository code
+          uses: actions/checkout@v4
+        - run: cargo fmt --check
