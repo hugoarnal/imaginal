@@ -29,6 +29,21 @@ pub enum ErrorType {
     Unknown,
 }
 
+impl Display for ErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let error_type: &str;
+
+        match *self {
+            ErrorType::ExpiredToken => error_type = "ExpiredToken",
+            ErrorType::Request => error_type = "Request",
+            ErrorType::WebServer => error_type = "WebServer",
+            ErrorType::Ratelimit => error_type = "Ratelimit",
+            ErrorType::Unknown => error_type = "Unknown",
+        }
+        write!(f, "{}", error_type)
+    }
+}
+
 #[derive(Debug)]
 pub struct Error {
     error_type: ErrorType,
@@ -64,7 +79,7 @@ impl From<io::Error> for Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}: {}", self.error_type, self.message)
+        write!(f, "{}: {}", self.error_type, self.message)
     }
 }
 
@@ -85,7 +100,7 @@ impl Platform {
         match *self {
             Platform::Spotify => spotify::connection::connect().await,
             _ => {
-                log::warn!("No login implementation detected for {:?}", self);
+                log::warn!("No login implementation detected for {}", self);
                 Ok(None)
             }
         }
@@ -98,7 +113,7 @@ impl Platform {
         match *self {
             Platform::Spotify => spotify::connection::refresh(parameters.clone()).await,
             _ => {
-                log::warn!("No refresh implementation detected for {:?}", self);
+                log::warn!("No refresh implementation detected for {}", self);
                 Ok(None)
             }
         }
@@ -158,7 +173,7 @@ pub struct Provider {
 impl Provider {
     pub fn new(platform: Platform) -> Self {
         platform.verify();
-        log::info!("Using provider {:?}", platform);
+        log::info!("Using provider {}", platform);
         Self {
             platform: platform,
             params: None,
@@ -169,10 +184,10 @@ impl Provider {
         match self.platform.connect().await {
             Ok(params) => {
                 self.params = params;
-                log::debug!("Successfully connected to {:?}", self.platform);
+                log::debug!("Successfully connected to {}", self.platform);
             }
             Err(err) => {
-                log::error!("Error occured during {:?} connection", self.platform);
+                log::error!("Error occured during {} connection", self.platform);
                 panic!("{}", err);
             }
         }
@@ -182,7 +197,7 @@ impl Provider {
         match self.platform.refresh(self.params.clone()).await {
             Ok(params) => {
                 self.params = params;
-                log::info!("Successfully connected to {:?}", self.platform);
+                log::info!("Successfully connected to {}", self.platform);
             }
             Err(err) => {
                 log::error!("Couldn't refresh access_token using refresh_token");

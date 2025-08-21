@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let platform = match providers::detect_platform() {
         Some(p) => {
-            log::debug!("Found platform {:?}", p);
+            log::debug!("Found platform {}", p);
             p
         }
         None => {
