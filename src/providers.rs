@@ -165,6 +165,11 @@ impl Display for Platform {
     }
 }
 
+pub enum WaitType {
+    CurrentlyPlaying,
+    Ratelimit,
+}
+
 pub struct Provider {
     platform: Platform,
     params: Option<PlatformParameters>,
@@ -242,9 +247,7 @@ impl Provider {
                         self.refresh().await;
                     }
                     ErrorType::Ratelimit => {
-                        let duration = time::Duration::from_secs(RATELIMIT_WAIT_SECS);
-                        log::warn!("Waiting {:?} before retrying", duration);
-                        thread::sleep(duration);
+                        self.wait(WaitType::Ratelimit);
                     }
                     _ => {}
                 }
@@ -252,9 +255,17 @@ impl Provider {
         }
     }
 
-    pub fn wait(&self) {
-        let duration = time::Duration::from_secs(self.platform.ratelimit());
-        log::debug!("Waiting {:?} until next request", duration);
+    pub fn wait(&self, wait_type: WaitType) {
+        let mut log_level = log::Level::Debug;
+        let duration = match wait_type {
+            WaitType::CurrentlyPlaying => time::Duration::from_secs(self.platform.ratelimit()),
+            WaitType::Ratelimit => {
+                log_level = log::Level::Warn;
+                time::Duration::from_secs(RATELIMIT_WAIT_SECS)
+            }
+        };
+
+        log::log!(log_level, "Waiting {:?}", duration);
         thread::sleep(duration);
     }
 }

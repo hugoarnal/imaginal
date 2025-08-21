@@ -40,7 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             provider.connect().await;
             loop {
                 provider.currently_playing().await;
-                provider.wait();
+                provider.wait(providers::WaitType::CurrentlyPlaying);
             }
         }
     }
