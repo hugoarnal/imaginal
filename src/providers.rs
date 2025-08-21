@@ -138,6 +138,18 @@ impl Platform {
     }
 }
 
+impl Display for Platform {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let platform: &str;
+
+        match *self {
+            Platform::LastFM => platform = "LastFM",
+            Platform::Spotify => platform = "Spotify",
+        }
+        write!(f, "{}", platform)
+    }
+}
+
 pub struct Provider {
     platform: Platform,
     params: Option<PlatformParameters>,

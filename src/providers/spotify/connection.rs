@@ -11,19 +11,15 @@ use std::{
 };
 
 use crate::{
+    commands::connect::get_server_info,
     database,
     providers::{
-        self, PlatformParameters,
-        spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV},
+        self, spotify::{CLIENT_ID_ENV, CLIENT_SECRET_ENV}, PlatformParameters
     },
-    utils::check_env_existence,
 };
 
 const AUTHORIZE_API_LINK: &str = "https://accounts.spotify.com/authorize";
 const ACCESS_TOKEN_API_LINK: &str = "https://accounts.spotify.com/api/token";
-const PORT_ENV: &str = "SPOTIFY_PORT";
-const IP: &str = "127.0.0.1";
-const DEFAULT_PORT: u16 = 9761;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct AccessTokenJson {
@@ -189,21 +185,16 @@ fn get_authorize_url(redirect_uri: &String, state: &String) -> String {
     url
 }
 
-pub fn get_redirect_uri() -> String {
-    format!("http://{}:{}/callback", IP, get_server_port())
-}
-
-fn get_server_port() -> u16 {
-    let mut port = DEFAULT_PORT;
-
-    if check_env_existence(PORT_ENV, false) {
-        port = env::var(PORT_ENV).unwrap().parse().unwrap();
-    }
-    port
+fn get_redirect_uri(ip: &String, port: u16) -> String {
+    format!("http://{}:{}/callback", ip, port)
 }
 
 pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
-    let redirect_uri = get_redirect_uri();
+    let login_server_info = get_server_info();
+    let ip = login_server_info.ip;
+    let port = login_server_info.port;
+
+    let redirect_uri = get_redirect_uri(&ip, port);
     let state = Alphanumeric.sample_string(&mut rand::rng(), 16);
     let url = get_authorize_url(&redirect_uri, &state);
 
@@ -226,15 +217,15 @@ pub async fn login_server() -> Result<AccessTokenJson, providers::Error> {
         }
     })
     .disable_signals()
-    .bind((IP, get_server_port()))?
+    .bind((ip.clone(), port))?
     .workers(1)
     .run();
 
     stop_handle.register(server.handle());
     log::warn!(
         "Go to http://{}:{}/login on your browser",
-        IP,
-        get_server_port()
+        ip,
+        port
     );
 
     server.await?;
